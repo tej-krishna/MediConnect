@@ -6,8 +6,8 @@ A task is marked `[x]` only after its code, tests, and manual verification all p
 `ARCHITECTURE.md` for the decisions behind these choices and `README.md` for how to run each
 package.
 
-**Current phase: Phase 2 — Authentication and Authorization**
-**Next task: 2.1 — Registration/login/logout with password hashing and account lockout controls**
+**Current phase: Phase 3 — Provider Registration and Verification**
+**Next task: 3.1 — Provider application model + document upload + status machine**
 
 ---
 
@@ -42,9 +42,16 @@ package.
 
 ## Phase 2 — Authentication and Authorization
 
-- [ ] 2.1 — Registration, login, logout; password hashing (bcryptjs); account status and lockout controls.
-- [ ] 2.2 — Short-lived access tokens + refresh-token rotation and revocation; secure session handling (HttpOnly cookies) on the frontend.
-- [ ] 2.3 — Password reset flow with expiry/abuse protection; role-based authorization middleware; auth test coverage (permitted vs. forbidden operations).
+- [x] 2.1 — Registration (`POST /auth/register`, patient-only self-signup — any `role` field in the request body is ignored, never trusted), login (`POST /auth/login`), logout (`POST /auth/logout`); password hashing via bcryptjs (12 salt rounds); account lockout after 5 failed attempts (15 min lock, `423 ACCOUNT_LOCKED`) and `suspended` status support.
+- [x] 2.2 — Short-lived JWT access tokens (`src/modules/auth/jwt.ts`) + opaque, DB-tracked refresh tokens with rotation and reuse detection (`src/modules/auth/auth.service.ts`, `refreshToken.model.ts`): each refresh revokes the old token and issues a new one; presenting an already-revoked token revokes the user's entire session set. Refresh token is set as an `HttpOnly`/`SameSite=Lax` cookie scoped to `/api/v1/auth`; access token is returned in the JSON body for the client to hold in memory.
+- [x] 2.3 — Password reset flow (`POST /auth/forgot-password`, `POST /auth/reset-password`) with a 30-minute token expiry, single-use tokens, no email-existence disclosure, and full session revocation on reset; role-based authorization middleware (`src/middleware/auth.ts` — `requireAuth`, `requireRole`); auth test coverage across 4 test files (register/login/refresh/logout, lockout, password reset, and middleware permitted-vs-forbidden cases).
+
+**Evidence:**
+- `npm run typecheck`, `npm run build`, and `npm run lint` all pass with 0 errors/warnings.
+- `npx vitest run` → 19/19 tests passing across 6 files, including: duplicate-email 409, invalid-payload 400, generic "Invalid email or password" for both wrong-password and unknown-email (no user enumeration), full register→login→/auth/me→refresh→logout flow, refresh-token reuse triggering full session revocation, account lockout after 5 failed attempts, forgot/reset-password (captured via a spy on `notificationService` rather than a real mailbox) including post-reset session revocation and old-password rejection, and `requireAuth`/`requireRole` 401/403/200 cases on a minimal standalone app.
+- Self-registration explicitly verified to ignore a client-supplied `role: "super_admin"` and always assign `["patient"]`.
+
+**Known issues / deferred:** Frontend session handling (storing the access token, calling `/auth/refresh`, protected routes) is deferred to Phase 4, where real pages first exist to wire it against and verify end-to-end — building that context now, with nothing to protect yet, would be unverifiable. Password-reset email delivery has no real provider configured; `src/services/notification.service.ts` documents this and currently only logs (see ARCHITECTURE.md).
 
 ## Phase 3 — Provider Registration and Verification
 

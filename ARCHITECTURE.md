@@ -99,3 +99,44 @@ built versus planned. Entries are added here at the end of each phase, not in ad
 - **Rate limiting** is applied globally to the whole `/api/v1` prefix for now (`express-rate-limit`,
   configurable via env); tighter, endpoint-specific limits (login, OTP, uploads) are added in Phase 2
   per the security requirements in the project brief.
+
+### Phase 2 — Authentication and authorization
+
+- **Access tokens are JWTs; refresh tokens are not.** Access tokens (`src/modules/auth/jwt.ts`) are
+  short-lived, stateless, signed JWTs — cheap to verify on every request, no DB round trip. Refresh
+  tokens are opaque random values whose SHA-256 hash is stored in a `RefreshToken` collection
+  (`src/modules/auth/refreshToken.model.ts`). Making refresh tokens DB-backed rather than JWTs is what
+  makes rotation and revocation actually possible: a JWT refresh token still needs a server-side
+  denylist to be revocable, so there's no real benefit to making it a JWT in the first place.
+- **Refresh rotation + reuse detection.** Every `/auth/refresh` call revokes the presented token and
+  issues a new one (`auth.service.ts: refresh`). If a token that was already revoked is presented
+  again — which only happens if someone replayed a stolen or previously-rotated-out token — every
+  active refresh token for that user is revoked immediately, forcing a full re-login everywhere. This
+  trades a small amount of user friction (an attacker *or* a buggy client retry can trigger it) for
+  catching session theft quickly.
+- **Cookie vs. body split.** The refresh token goes in an `HttpOnly`, `SameSite=Lax` cookie scoped to
+  `/api/v1/auth` (never readable by page JavaScript, never sent to unrelated routes); the access token
+  comes back in the JSON response body for the client to hold in memory. This keeps the long-lived
+  credential out of reach of XSS while leaving the access token's storage to the frontend (in-memory,
+  not `localStorage`, once Phase 4 wires this up) rather than baking a second cookie policy in now.
+- **No user enumeration.** Login failure (wrong password) and login failure (no such account) return
+  the identical `401 "Invalid email or password"`. `forgot-password` always returns the same success
+  message whether or not the email exists. The one deliberate exception is a locked account, which
+  returns a distinct `423 ACCOUNT_LOCKED` — a small, intentional enumeration trade-off for a clearer
+  user experience, not an oversight.
+- **Self-registration cannot grant roles.** `POST /auth/register` always creates a `patient` account;
+  any `role`/`roles` field in the request body is silently ignored by `auth.service.ts: register`
+  rather than validated-and-rejected, because the field isn't part of `registerSchema` at all — zod
+  strips unknown keys by default, so there's nothing for the service layer to even consider. Every
+  other role is granted only through the Phase 3 provider-verification workflow or by an admin.
+- **Password reset revokes everything.** Resetting a password revokes every refresh token the user
+  had (`auth.service.ts: resetPassword`), so a compromised-password scenario doesn't leave old sessions
+  (e.g. on an attacker's device) still valid after the legitimate user resets their credentials.
+- **`NotificationService` is a seam, not an integration.** No email/SMS provider is configured yet
+  (`src/services/notification.service.ts`). The interface exists so a real provider (SES, Twilio, etc.)
+  can be dropped in later without touching `auth.service.ts`; until then it only logs, and tests
+  verify the reset flow by spying on that interface rather than needing a real mailbox.
+- **Account lockout** trips after 5 failed attempts and lasts 15 minutes; there is no background job
+  unlocking accounts. Once `lockUntil` has passed, the *next* login attempt is allowed to check the
+  password again: if it's correct, the lock clears (`status` back to `active`, counters reset); if
+  it's wrong, the account re-locks for another 15 minutes rather than clearing.
