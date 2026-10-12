@@ -1,6 +1,6 @@
 import { mkdirSync } from 'fs';
 import path from 'path';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 
 export default async function setup() {
   process.env.NODE_ENV = 'test';
@@ -17,8 +17,11 @@ export default async function setup() {
   process.env.TEMP = localTmpDir;
   process.env.TMP = localTmpDir;
 
-  const mongod = await MongoMemoryServer.create();
-  process.env.MONGO_URI = mongod.getUri();
+  // A single-node replica set (not a plain standalone instance) so multi-document transactions
+  // work in tests exactly as they do against a real deployment — appointment booking relies on a
+  // transaction to atomically reserve slot capacity and create the booking together.
+  const mongod = await MongoMemoryReplSet.create({ replSet: { count: 1, storageEngine: 'wiredTiger' } });
+  process.env.MONGO_URI = mongod.getUri('mediconnect-test');
 
   return async () => {
     await mongod.stop();

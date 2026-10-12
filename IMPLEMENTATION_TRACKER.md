@@ -6,8 +6,8 @@ A task is marked `[x]` only after its code, tests, and manual verification all p
 `ARCHITECTURE.md` for the decisions behind these choices and `README.md` for how to run each
 package.
 
-**Current phase: Phase 5 — Doctor, Hospital and Clinic Workflows**
-**Next task: 5.1 — Provider dashboards; organization/facility profile and staff membership permissions**
+**Current phase: Phase 6 — Pharmacy and Medicine Services**
+**Next task: 6.1 — Pharmacy inventory and medicine search/availability**
 
 ---
 
@@ -86,9 +86,16 @@ package.
 
 ## Phase 5 — Doctor, Hospital and Clinic Workflows
 
-- [ ] 5.1 — Provider dashboards; organization/facility profile and staff membership permissions.
-- [ ] 5.2 — Consultation fees, working hours, appointment slots and availability management.
-- [ ] 5.3 — Appointment booking/cancel/reschedule with duplicate-booking and race-condition handling.
+- [x] 5.1 — Provider staff membership (`src/modules/providers/providerStaff.model.ts`/`.service.ts`): owner invites an existing registered user by email, invitee accepts, owner can remove; `isProviderMember()` (owner OR active staff) gates schedule management everywhere below, while the Phase 3 verification actions (documents, submit, listing-info, admin transitions) stay owner-only. Frontend: `/become-provider` (creates an application), `/dashboard/providers/:id` (adapts to the application's status — document upload + submit while in draft/review, listing/slot/appointment management once approved), and `AccountPage` now lists the user's own provider applications with links into their dashboards.
+- [x] 5.2 — Appointment slots (`src/modules/scheduling/slot.model.ts`/`.service.ts`): a provider member creates discrete bookable slots (start/end time, capacity) rather than a recurring weekly schedule (a deliberate scope choice — see ARCHITECTURE.md); only possible for an actively-verified provider. A public `GET .../slots/available` (authenticated, any user) lists only future, open, not-yet-full slots; the owner/staff view (`GET .../slots`) shows everything including past/cancelled/full. Cancelling a slot is blocked while it has active bookings.
+- [x] 5.3 — Appointment booking (`src/modules/scheduling/appointment.model.ts`/`.service.ts`): `POST /appointments` atomically reserves one unit of slot capacity and creates the booking inside a single MongoDB transaction, so concurrent booking requests for the same slot can never oversell it; a partial unique index on `(slotId, patientId)` prevents the same patient double-booking the same slot while still allowing rebooking after a cancellation. Cancellation (by the patient or a provider member) reverses the capacity reservation in the same transactional pattern. Rescheduling is cancel-then-rebook rather than a dedicated endpoint (documented as a deliberate simplification, not an oversight).
+
+**Evidence:**
+- Backend: `npm run typecheck`, `npm run build`, `npm run lint` all pass; `npx vitest run` → 10 files / 37 tests passing. New: `tests/scheduling.test.ts` covering staff invite/accept/list/remove and non-owner-forbidden, slot creation/visibility/cancellation (including that a past `startTime` is rejected and that a cancelled slot disappears from public availability), the full book → duplicate-booking-rejected → full-slot-rejected → cancel → slot-capacity-restored → rebook lifecycle, and — the one that actually matters here — **5 simulated patients concurrently requesting the same capacity-1 slot via `Promise.all`, asserting exactly 1 succeeds (201) and 4 fail (409), with the slot's final `bookedCount` verified to be exactly 1**, proving the transaction genuinely prevents overbooking rather than merely appearing to under sequential testing.
+- A real infrastructure decision was needed to make that test meaningful: MongoDB only supports multi-document transactions on a replica set, so `tests/globalSetup.ts` now boots `MongoMemoryReplSet` (single-node) instead of a plain `MongoMemoryServer`. Documented in `README.md` that a local development MongoDB must likewise be configured as a (single-node is fine) replica set, with the exact `mongod --replSet` + `rs.initiate()` commands — a standalone local `mongod` will cleanly error the moment someone tries to book an appointment.
+- Full manual browser verification end to end, across two real accounts: registered as a provider owner → filled and submitted the `/become-provider` form → uploaded a (API-submitted, since native OS file pickers aren't automatable here) document → submitted for review → approved via the admin API → set a consultation fee/hours and created a slot from `/dashboard/providers/:id` → logged out, registered as a *different* patient account → saw the real slot on the public provider detail page → booked it → confirmed it under `/appointments` → cancelled it → confirmed the slot immediately showed "1 spot left" again on the detail page. Every step hit the real backend and a real (replica-set) database; nothing was mocked.
+
+**Known issues / deferred:** No recurring/weekly-pattern schedule generator — providers create individual slots one at a time (a "repeat this slot weekly" convenience could be added later without changing the data model or API). No dedicated reschedule endpoint (cancel + rebook covers it).
 
 ## Phase 6 — Pharmacy and Medicine Services
 

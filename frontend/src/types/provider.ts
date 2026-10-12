@@ -24,3 +24,37 @@ export interface PublicProvider {
   verifiedAt: string | null;
   distanceMeters?: number;
 }
+
+export interface ProviderDocument {
+  id: string;
+  documentType: string;
+  originalFilename: string;
+  mimeType: string;
+  sizeBytes: number;
+  uploadedAt: string;
+}
+
+export type ApplicationStatus = 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'suspended' | 'expired';
+
+/** Owner/admin view — everything, including fields never shown on the public discovery API. */
+export interface OwnerProviderApplication {
+  id: string;
+  userId: string;
+  providerType: string;
+  organizationName: string;
+  registrationNumber: string;
+  issuingAuthority: string;
+  contactPhone: string;
+  contactEmail: string;
+  address: Address;
+  location: LatLng | null;
+  consultationFee: number | null;
+  operatingHoursNote: string | null;
+  documents: ProviderDocument[];
+  status: ApplicationStatus;
+  rejectionReason: string | null;
+  suspensionReason: string | null;
+  verifiedAt: string | null;
+  expiresAt: string | null;
+  isActivelyVerified: boolean;
+}

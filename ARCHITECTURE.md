@@ -221,3 +221,47 @@ built versus planned. Entries are added here at the end of each phase, not in ad
   long-running database (indexes are usually already built) but shows up reliably against a fresh
   one. All backend tests connect through this same function now instead of a raw `mongoose.connect`,
   so the test suite exercises the exact startup path production uses.
+
+### Phase 5 — Provider workflows, scheduling, and booking
+
+- **Discrete slots, not a recurring schedule.** A provider (or staff member) creates individual
+  bookable time slots — explicit start/end time and capacity — rather than defining a weekly
+  availability pattern that the system expands into future slots. This is a deliberate scope
+  decision, not an oversight: a recurrence engine (weekly patterns, holiday exceptions, DST,
+  per-slot overrides) is a meaningfully larger feature with its own edge cases, and the brief's
+  actual requirement — "appointment capacity," "a reliable reservation mechanism" — is fully met by
+  explicit slots. A "repeat this slot weekly" convenience can be layered on top later without
+  changing the `Slot`/`Appointment` data model or any API shape, since it would just mean creating
+  more `Slot` documents, not a different kind of one.
+- **Booking requires a MongoDB transaction — not an optimistic/compensating workaround.** The brief
+  explicitly says to use transactions "where supported and necessary," and this is the textbook case
+  for one: reserving slot capacity and creating the appointment record have to succeed or fail
+  together, and multiple patients can race for the same slot. `bookAppointment()`
+  (`appointment.service.ts`) wraps the atomic `findOneAndUpdate` (which only matches and increments
+  `bookedCount` when `bookedCount < capacity`) and the `Appointment.create()` in one
+  `session.withTransaction()`. Concretely verified under real concurrency in
+  `tests/scheduling.test.ts`: 5 simulated patients hit a capacity-1 slot via `Promise.all`, exactly 1
+  gets a 201, the other 4 get a 409, and the slot's `bookedCount` ends at exactly 1 — not something
+  a sequential test could prove, since the whole point is what happens when requests overlap.
+- **Transactions forced a test-infrastructure change.** MongoDB only supports multi-document
+  transactions on a replica set — a plain standalone `mongod` rejects `session.withTransaction()`
+  outright. `tests/globalSetup.ts` now boots a single-node `MongoMemoryReplSet` instead of a plain
+  `MongoMemoryServer`. The same requirement applies to any real deployment: `README.md` documents
+  that local MongoDB needs `--replSet` + a one-time `rs.initiate()` (a managed service like Atlas is
+  already a replica set by default, so production is unaffected).
+- **Double-booking prevention lives in a database constraint, not just application logic.** The
+  partial unique index on `Appointment { slotId, patientId }` (scoped to non-cancelled statuses) is
+  what actually makes "the same patient can't double-book the same slot" true under concurrency — an
+  application-level "check if a booking already exists, then insert" has exactly the same race
+  condition as overbooking a slot would without the atomic capacity check. The database constraint
+  is the source of truth; the service layer just turns the resulting duplicate-key error into a
+  clean `409`.
+- **`isProviderMember()` is the one authorization gate for schedule management**, treating the
+  application's `userId` (owner) and any `ProviderStaff` row with `status: 'active'` identically. It
+  deliberately does *not* gate the Phase 3 verification actions (document upload, submission,
+  listing-info edits, admin review transitions) — those stay owner-only — so a staff invite can never
+  become a path to altering a provider's legal/verification identity, only to managing its day-to-day
+  schedule and bookings.
+- **Staff invites require an existing account**, found by email, rather than sending an email
+  invite to an arbitrary address (consistent with no email provider being configured — see
+  [[Phase 2]] — and avoids a pre-account-creation flow neither the brief nor this phase asked for).

@@ -10,6 +10,9 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { AccountPage } from './pages/AccountPage';
 import { ProviderSearchPage } from './pages/ProviderSearchPage';
 import { ProviderDetailPage } from './pages/ProviderDetailPage';
+import { BecomeProviderPage } from './pages/BecomeProviderPage';
+import { ProviderDashboardPage } from './pages/ProviderDashboardPage';
+import { MyAppointmentsPage } from './pages/MyAppointmentsPage';
 import { ContactPage } from './pages/ContactPage';
 import { HelpPage } from './pages/HelpPage';
 import { PrivacyPage } from './pages/PrivacyPage';
@@ -35,6 +38,9 @@ function App() {
             <Route path="terms" element={<TermsPage />} />
             <Route element={<ProtectedRoute />}>
               <Route path="account" element={<AccountPage />} />
+              <Route path="become-provider" element={<BecomeProviderPage />} />
+              <Route path="dashboard/providers/:id" element={<ProviderDashboardPage />} />
+              <Route path="appointments" element={<MyAppointmentsPage />} />
             </Route>
             <Route path="*" element={<NotFoundPage />} />
           </Route>

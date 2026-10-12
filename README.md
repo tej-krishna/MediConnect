@@ -20,7 +20,18 @@ mobile/     Flutter app (added in Phase 13)
 ## Prerequisites
 
 - Node.js 20+ and npm
-- MongoDB running locally (or a connection string to a reachable instance)
+- MongoDB running locally (or a connection string to a reachable instance), **configured as a
+  replica set** (a single-node one is enough). Appointment booking uses a MongoDB transaction to
+  atomically reserve slot capacity and create the booking together, and transactions require a
+  replica set — a plain standalone `mongod` will throw an error when a booking is attempted. A
+  managed service like Atlas is already a replica set by default; for a local install:
+  ```bash
+  mongod --replSet rs0 --dbpath <your-db-path>
+  # then, in a mongosh connected to it, once:
+  rs.initiate()
+  ```
+  Automated tests don't need this — they run against an in-memory single-node replica set
+  (`mongodb-memory-server`, see `backend/tests/globalSetup.ts`) regardless of your local setup.
 
 ## Backend setup
 

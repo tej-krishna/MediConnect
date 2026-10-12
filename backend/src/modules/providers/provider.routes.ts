@@ -24,6 +24,13 @@ import {
   searchPublicProvidersHandler,
   getPublicProviderHandler,
 } from './provider.controller';
+import { inviteStaffSchema } from '../scheduling/scheduling.validation';
+import {
+  inviteStaffHandler,
+  listStaffHandler,
+  acceptStaffInviteHandler,
+  removeStaffHandler,
+} from './providerStaff.controller';
 
 export const providerRouter = Router();
 
@@ -53,3 +60,8 @@ providerRouter.post(
 providerRouter.get('/providers/applications/:id/documents/:documentId/download', downloadDocumentHandler);
 providerRouter.post('/providers/applications/:id/submit', submitApplicationHandler);
 providerRouter.post('/providers/applications/:id/report', validateBody(reportSchema), reportApplicationHandler);
+
+providerRouter.post('/providers/applications/:id/staff', validateBody(inviteStaffSchema), inviteStaffHandler);
+providerRouter.get('/providers/applications/:id/staff', listStaffHandler);
+providerRouter.delete('/providers/applications/:id/staff/:staffId', removeStaffHandler);
+providerRouter.post('/providers/staff/:staffId/accept', acceptStaffInviteHandler);
