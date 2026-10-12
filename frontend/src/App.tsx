@@ -13,6 +13,10 @@ import { ProviderDetailPage } from './pages/ProviderDetailPage';
 import { BecomeProviderPage } from './pages/BecomeProviderPage';
 import { ProviderDashboardPage } from './pages/ProviderDashboardPage';
 import { MyAppointmentsPage } from './pages/MyAppointmentsPage';
+import { MedicineSearchPage } from './pages/MedicineSearchPage';
+import { MedicineAlternativesPage } from './pages/MedicineAlternativesPage';
+import { OrderMedicinePage } from './pages/OrderMedicinePage';
+import { MyOrdersPage } from './pages/MyOrdersPage';
 import { ContactPage } from './pages/ContactPage';
 import { HelpPage } from './pages/HelpPage';
 import { PrivacyPage } from './pages/PrivacyPage';
@@ -32,6 +36,8 @@ function App() {
             <Route path="reset-password" element={<ResetPasswordPage />} />
             <Route path="providers" element={<ProviderSearchPage />} />
             <Route path="providers/:id" element={<ProviderDetailPage />} />
+            <Route path="medicines" element={<MedicineSearchPage />} />
+            <Route path="medicines/:id/alternatives" element={<MedicineAlternativesPage />} />
             <Route path="contact" element={<ContactPage />} />
             <Route path="help" element={<HelpPage />} />
             <Route path="privacy" element={<PrivacyPage />} />
@@ -41,6 +47,8 @@ function App() {
               <Route path="become-provider" element={<BecomeProviderPage />} />
               <Route path="dashboard/providers/:id" element={<ProviderDashboardPage />} />
               <Route path="appointments" element={<MyAppointmentsPage />} />
+              <Route path="medicines/:id/order" element={<OrderMedicinePage />} />
+              <Route path="orders" element={<MyOrdersPage />} />
             </Route>
             <Route path="*" element={<NotFoundPage />} />
           </Route>

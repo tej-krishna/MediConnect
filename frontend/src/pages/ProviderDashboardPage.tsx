@@ -13,10 +13,27 @@ import {
   cancelSlot,
   listProviderAppointments,
 } from '../services/schedulingService';
+import {
+  createMedicineItem,
+  listPharmacyMedicines,
+  updateMedicineItem,
+  listPharmacyOrders,
+  transitionOrder,
+} from '../services/pharmacyService';
 import { ApiError } from '../services/apiClient';
 import type { OwnerProviderApplication } from '../types/provider';
 import type { Slot, Appointment } from '../types/scheduling';
+import type { Medicine, Order, OrderStatus } from '../types/pharmacy';
 import './ProviderDashboardPage.css';
+
+const SCHEDULING_TYPES = new Set(['doctor', 'hospital', 'clinic', 'diagnostic_lab']);
+
+const NEXT_ORDER_ACTION: Partial<Record<OrderStatus, { action: string; label: string }>> = {
+  placed: { action: 'confirm', label: 'Confirm' },
+  confirmed: { action: 'start_preparing', label: 'Start preparing' },
+  preparing: { action: 'out_for_delivery', label: 'Out for delivery' },
+  out_for_delivery: { action: 'deliver', label: 'Mark delivered' },
+};
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Draft — add documents and submit for review',
@@ -52,6 +69,18 @@ export function ProviderDashboardPage() {
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
 
+  const [medicines, setMedicines] = useState<Medicine[]>([]);
+  const [medName, setMedName] = useState('');
+  const [medGeneric, setMedGeneric] = useState('');
+  const [medIngredient, setMedIngredient] = useState('');
+  const [medStrength, setMedStrength] = useState('');
+  const [medForm, setMedForm] = useState('tablet');
+  const [medPrice, setMedPrice] = useState('');
+  const [medStock, setMedStock] = useState('');
+  const [medRx, setMedRx] = useState(false);
+  const [creatingMedicine, setCreatingMedicine] = useState(false);
+  const [pharmacyOrders, setPharmacyOrders] = useState<Order[]>([]);
+
   const reload = useCallback(async () => {
     if (!id) return;
     try {
@@ -59,13 +88,18 @@ export function ProviderDashboardPage() {
       setApplication(app);
       setFee(app.consultationFee !== null ? String(app.consultationFee) : '');
       setHoursNote(app.operatingHoursNote ?? '');
-      if (app.status === 'approved') {
+      if (app.status === 'approved' && SCHEDULING_TYPES.has(app.providerType)) {
         const [slotList, appointmentList] = await Promise.all([
           listProviderSlots(id),
           listProviderAppointments(id),
         ]);
         setSlots(slotList);
         setAppointments(appointmentList);
+      }
+      if (app.status === 'approved' && app.providerType === 'pharmacy') {
+        const [medicineList, orderList] = await Promise.all([listPharmacyMedicines(id), listPharmacyOrders(id)]);
+        setMedicines(medicineList);
+        setPharmacyOrders(orderList);
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not load this application.');
@@ -157,6 +191,59 @@ export function ProviderDashboardPage() {
     }
   }
 
+  async function handleCreateMedicine(e: FormEvent) {
+    e.preventDefault();
+    if (!id) return;
+    setCreatingMedicine(true);
+    setError(null);
+    try {
+      await createMedicineItem(id, {
+        name: medName,
+        genericName: medGeneric,
+        activeIngredient: medIngredient,
+        strength: medStrength,
+        dosageForm: medForm,
+        manufacturer: null,
+        unitPrice: Number(medPrice) || 0,
+        stockQuantity: Number(medStock) || 0,
+        requiresPrescription: medRx,
+      });
+      setMedName('');
+      setMedGeneric('');
+      setMedIngredient('');
+      setMedStrength('');
+      setMedPrice('');
+      setMedStock('');
+      setMedRx(false);
+      setMessage('Medicine added to inventory.');
+      await reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not add medicine.');
+    } finally {
+      setCreatingMedicine(false);
+    }
+  }
+
+  async function handleStockChange(medicineId: string, stockQuantity: number) {
+    if (!id) return;
+    try {
+      await updateMedicineItem(id, medicineId, { stockQuantity });
+      await reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not update stock.');
+    }
+  }
+
+  async function handleOrderAction(orderId: string, action: string) {
+    setError(null);
+    try {
+      await transitionOrder(orderId, action);
+      await reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not update order status.');
+    }
+  }
+
   if (loading) return <div className="page-loading">Loading dashboard…</div>;
   if (!application) return <div className="page-error">{error ?? 'Application not found.'}</div>;
 
@@ -234,6 +321,7 @@ export function ProviderDashboardPage() {
             </form>
           </div>
 
+          {SCHEDULING_TYPES.has(application.providerType) && (
           <div className="card">
             <h3>Appointment slots</h3>
             <form onSubmit={handleCreateSlot} className="inline-form">
@@ -303,7 +391,9 @@ export function ProviderDashboardPage() {
               </tbody>
             </table>
           </div>
+          )}
 
+          {SCHEDULING_TYPES.has(application.providerType) && (
           <div className="card">
             <h3>Appointments</h3>
             <table className="simple-table">
@@ -330,6 +420,138 @@ export function ProviderDashboardPage() {
               </tbody>
             </table>
           </div>
+          )}
+
+          {application.providerType === 'pharmacy' && (
+            <>
+              <div className="card">
+                <h3>Medicine inventory</h3>
+                <form onSubmit={handleCreateMedicine} className="inline-form">
+                  <div className="form-field">
+                    <label htmlFor="medName">Name</label>
+                    <input id="medName" required value={medName} onChange={(e) => setMedName(e.target.value)} />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="medGeneric">Generic name</label>
+                    <input id="medGeneric" required value={medGeneric} onChange={(e) => setMedGeneric(e.target.value)} />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="medIngredient">Active ingredient</label>
+                    <input id="medIngredient" required value={medIngredient} onChange={(e) => setMedIngredient(e.target.value)} />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="medStrength">Strength</label>
+                    <input id="medStrength" required placeholder="e.g. 500mg" value={medStrength} onChange={(e) => setMedStrength(e.target.value)} />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="medForm">Dosage form</label>
+                    <select id="medForm" value={medForm} onChange={(e) => setMedForm(e.target.value)}>
+                      <option value="tablet">Tablet</option>
+                      <option value="capsule">Capsule</option>
+                      <option value="syrup">Syrup</option>
+                      <option value="injection">Injection</option>
+                      <option value="ointment">Ointment</option>
+                    </select>
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="medPrice">Price (₹)</label>
+                    <input id="medPrice" type="number" min={0} required style={{ width: 90 }} value={medPrice} onChange={(e) => setMedPrice(e.target.value)} />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="medStock">Stock</label>
+                    <input id="medStock" type="number" min={0} required style={{ width: 80 }} value={medStock} onChange={(e) => setMedStock(e.target.value)} />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="medRx">
+                      <input id="medRx" type="checkbox" checked={medRx} onChange={(e) => setMedRx(e.target.checked)} style={{ marginRight: 6 }} />
+                      Prescription required
+                    </label>
+                  </div>
+                  <button type="submit" className="btn btn-secondary" disabled={creatingMedicine}>
+                    {creatingMedicine ? 'Adding…' : 'Add medicine'}
+                  </button>
+                </form>
+
+                <table className="simple-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Price</th>
+                      <th>Stock</th>
+                      <th>Rx</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {medicines.map((med) => (
+                      <tr key={med.id}>
+                        <td>
+                          {med.name} ({med.strength})
+                        </td>
+                        <td>₹{med.unitPrice}</td>
+                        <td>
+                          <input
+                            type="number"
+                            min={0}
+                            style={{ width: 70 }}
+                            defaultValue={med.stockQuantity}
+                            onBlur={(e) => handleStockChange(med.id, Number(e.target.value))}
+                          />
+                        </td>
+                        <td>{med.requiresPrescription ? 'Yes' : 'No'}</td>
+                      </tr>
+                    ))}
+                    {medicines.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="text-muted">
+                          No medicines in inventory yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="card">
+                <h3>Orders</h3>
+                <table className="simple-table">
+                  <thead>
+                    <tr>
+                      <th>Items</th>
+                      <th>Total</th>
+                      <th>Status</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pharmacyOrders.map((order) => {
+                      const next = NEXT_ORDER_ACTION[order.status];
+                      return (
+                        <tr key={order.id}>
+                          <td>{order.items.map((i) => `${i.name} x${i.quantity}`).join(', ')}</td>
+                          <td>₹{order.totalAmount}</td>
+                          <td>{order.status.replace(/_/g, ' ')}</td>
+                          <td>
+                            {next && (
+                              <button className="btn btn-secondary" onClick={() => handleOrderAction(order.id, next.action)}>
+                                {next.label}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {pharmacyOrders.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="text-muted">
+                          No orders yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </>
       )}
     </div>

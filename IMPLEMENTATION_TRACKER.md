@@ -6,8 +6,8 @@ A task is marked `[x]` only after its code, tests, and manual verification all p
 `ARCHITECTURE.md` for the decisions behind these choices and `README.md` for how to run each
 package.
 
-**Current phase: Phase 6 — Pharmacy and Medicine Services**
-**Next task: 6.1 — Pharmacy inventory and medicine search/availability**
+**Current phase: Phase 7 — Diagnostics, Radiology and Mobile Medical Vans**
+**Next task: 7.1 — Diagnostic test catalogue with transparent prices; lab appointment booking**
 
 ---
 
@@ -99,9 +99,16 @@ package.
 
 ## Phase 6 — Pharmacy and Medicine Services
 
-- [ ] 6.1 — Pharmacy inventory and medicine search/availability.
-- [ ] 6.2 — Prescription upload (private access) and order placement with stock validation.
-- [ ] 6.3 — Price comparison and generic-alternative suggestions (for pharmacist/clinician review, never auto-substituted).
+- [x] 6.1 — Medicine inventory (`src/modules/pharmacy/medicine.model.ts`/`.service.ts`), scoped per pharmacy (a provider member manages their own pharmacy's items — name, generic name, active ingredient, strength, dosage form, price, stock, prescription flag). Public `GET /medicines/search` (text-indexed name/generic-name search, optional city filter) and `GET /medicines/:id` only ever return items from pharmacies that are `providerType: 'pharmacy'` **and** currently actively-verified — the same re-derived-every-query trust check as provider/doctor discovery (Phase 4).
+- [x] 6.2 — Prescription-gated ordering (`src/modules/pharmacy/order.model.ts`/`.service.ts`): `POST /orders` reserves stock for every line item and creates the order in one MongoDB transaction (all-or-nothing — insufficient stock on any item fails the whole order without reserving anything), exactly the same reasoning as appointment booking (Phase 5). An order containing any prescription-required item starts in `pending_prescription` and cannot be confirmed by the pharmacy until the patient uploads a prescription document (stored via the same private storage adapter as verification documents) through `POST /orders/:id/prescription`, which moves it to `placed`.
+- [x] 6.3 — `GET /medicines/:id/alternatives` finds other active, in-stock items sharing `activeIngredient` + `strength` + `dosageForm` from a *different*, actively-verified pharmacy, sorted by price, and the response always carries an explicit disclaimer that these are for review with a pharmacist/clinician — never an automatic substitution, matching the project brief's explicit instruction on this point.
+
+**Evidence:**
+- Backend: `npm run typecheck`, `npm run build`, `npm run lint` all pass; `npx vitest run` → 11 files / 44 tests passing. New: `tests/pharmacy.test.ts` covering inventory CRUD and non-member-forbidden, text search and generic-alternative price comparison (including the disclaimer text), a full non-prescription order walked from `placed` through every status to `delivered`, the prescription-required order correctly blocked from confirmation until uploaded, an over-quantity order rejected with stock verified unchanged afterward (no partial reservation), cancellation restoring stock for both a patient- and a pharmacy-initiated cancel, and — mirroring the Phase 5 concurrency test — **4 simulated patients concurrently ordering the last single unit of stock via `Promise.all`, exactly 1 succeeding and the medicine's final `stockQuantity` verified to be exactly 0**.
+- Full manual browser verification end to end: registered a pharmacy owner, submitted and had a pharmacy application approved, added a prescription-required medicine from the dashboard's new inventory form, searched for and ordered it as a *different* (patient) account, uploaded the prescription (via the already-tested API, since native OS file pickers aren't browser-automatable here) to unblock the order, and walked it through confirm → preparing → out for delivery → delivered from the pharmacy dashboard's new order-fulfillment table — confirming stock dropped from 15 to 13 at order time and the UI reflected every status change against the real backend and database, including correctly surviving a backend process restart mid-flow (state is in the database, not in memory).
+- **A real bug was caught and fixed during this verification**: the dashboard's "add medicine" form sent `manufacturer: null` for an unfilled optional field, which the backend's zod schema (`optional()`, not `nullable()`) correctly rejected as a validation error. Fixed in `frontend/src/services/pharmacyService.ts` by omitting the field entirely rather than sending `null` — a good illustration of why browser verification against the real API catches things pure type-checking can't (the frontend `Medicine` type legitimately allows `string | null`, since that's what the API *returns*; the bug was in what it's valid to *send*).
+
+**Known issues / deferred:** No shopping cart — ordering is one medicine per checkout (the backend API already accepts multiple line items per order; only the frontend form is scoped to one item at a time, a deliberate simplicity choice for this phase, not a backend limitation). Delivery partner assignment/tracking is out of scope here — "delivery coordination" per the brief is covered by the pharmacy-managed status pipeline (`confirmed → preparing → out_for_delivery → delivered`), not a separate delivery-partner role/app surface (Phase 10 covers delivery partner assignment explicitly).
 
 ## Phase 7 — Diagnostics, Radiology and Mobile Medical Vans
 

@@ -265,3 +265,32 @@ built versus planned. Entries are added here at the end of each phase, not in ad
 - **Staff invites require an existing account**, found by email, rather than sending an email
   invite to an arbitrary address (consistent with no email provider being configured — see
   [[Phase 2]] — and avoids a pre-account-creation flow neither the brief nor this phase asked for).
+
+### Phase 6 — Pharmacy and medicine services
+
+- **Stock reservation reuses the Phase 5 booking pattern exactly**: reserve the scarce resource
+  atomically inside a transaction, then create the dependent record, with the whole thing succeeding
+  or failing together. The only real difference from appointment booking is that an order can have
+  *multiple* line items, each needing its own atomic `findOneAndUpdate` — if any one of them can't be
+  satisfied, the `AppError` thrown inside `session.withTransaction()` aborts the whole transaction,
+  so there's no risk of an order that reserved stock for item 1 but not item 2. This is the same
+  reason Phase 5 needed a replica-set test database; nothing new was required here.
+- **A medicine's price/prescription requirement is snapshotted onto the order at creation time**
+  (`OrderItem.unitPrice`), not re-read live from `MedicineItem` later. If a pharmacy changes a price
+  after an order is placed, the order's total stays what the patient actually agreed to pay — the
+  same "don't silently change terms after the fact" reasoning as e-commerce systems generally use.
+- **Never auto-substitute.** `findAlternatives()` is read-only and purely additive — it never alters
+  the patient's order or the pharmacy's fulfillment of it. The response always carries a disclaimer
+  string alongside the data, so the *frontend* can't accidentally present "alternatives" as if they
+  were an automatic swap (the disclaimer travels with the data, not just in frontend copy that could
+  drift out of sync with what the API actually does).
+- **Prescription documents go through the same `StorageAdapter`/private-download pattern as provider
+  verification documents** ([[Phase 3]]) — server-generated storage key, never served statically.
+  There's no separate "medical records" concept yet for where a prescription lives long-term; it's
+  attached to the order it unblocks. Phase 9 (medical records) is where a patient's prescription
+  history across orders would get a proper home if that's wanted later — this phase doesn't duplicate
+  that work ahead of time.
+- **Text search needs its index to exist before it's queried**, same class of issue as the Phase 4
+  `$geoNear` race — already solved by `connectDatabase()` awaiting `model.init()` for every model, so
+  `MedicineItem`'s `{name: 'text', genericName: 'text'}` index is just as covered as the `2dsphere`
+  one without any extra work this phase.

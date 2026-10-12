@@ -18,6 +18,9 @@ export function MainLayout() {
             <NavLink to="/providers" className="site-nav__link">
               Find Care
             </NavLink>
+            <NavLink to="/medicines" className="site-nav__link">
+              Medicines
+            </NavLink>
             {user ? (
               <>
                 <NavLink to="/account" className="site-nav__link">
