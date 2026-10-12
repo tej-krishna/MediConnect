@@ -2,8 +2,14 @@ import { asyncHandler } from '../../middleware/errorHandler';
 import { sendSuccess } from '../../utils/response';
 import { AppError } from '../../utils/AppError';
 import * as providerService from './provider.service';
+import type { SearchProvidersQuery } from './provider.validation';
 
-function toPublicApplication(app: Awaited<ReturnType<typeof providerService.getApplicationById>>) {
+function toLatLng(location: { coordinates?: [number, number] } | null | undefined) {
+  return location?.coordinates ? { lat: location.coordinates[1], lng: location.coordinates[0] } : null;
+}
+
+/** Owner/admin view — includes everything, including fields never shown to the public. */
+function toApplicationView(app: Awaited<ReturnType<typeof providerService.getApplicationById>>) {
   return {
     id: app._id.toString(),
     userId: app.userId.toString(),
@@ -14,6 +20,9 @@ function toPublicApplication(app: Awaited<ReturnType<typeof providerService.getA
     contactPhone: app.contactPhone,
     contactEmail: app.contactEmail,
     address: app.address,
+    location: toLatLng(app.location),
+    consultationFee: app.consultationFee,
+    operatingHoursNote: app.operatingHoursNote,
     documents: app.documents.map((doc) => ({
       id: doc._id.toString(),
       documentType: doc.documentType,
@@ -39,9 +48,40 @@ function toPublicApplication(app: Awaited<ReturnType<typeof providerService.getA
   };
 }
 
+/**
+ * Public, unauthenticated view — deliberately excludes registrationNumber, contactEmail,
+ * documents, statusHistory, reports/flagged, and anything else not meant for patients browsing
+ * without an account.
+ */
+function toPublicListing(app: {
+  _id: unknown;
+  providerType: string;
+  organizationName: string;
+  contactPhone: string;
+  address: unknown;
+  location?: { coordinates?: [number, number] } | null;
+  consultationFee: number | null;
+  operatingHoursNote: string | null;
+  verifiedAt: Date | null;
+  distanceMeters?: number;
+}) {
+  return {
+    id: String(app._id),
+    providerType: app.providerType,
+    organizationName: app.organizationName,
+    contactPhone: app.contactPhone,
+    address: app.address,
+    location: toLatLng(app.location),
+    consultationFee: app.consultationFee,
+    operatingHoursNote: app.operatingHoursNote,
+    verifiedAt: app.verifiedAt,
+    ...(app.distanceMeters !== undefined ? { distanceMeters: Math.round(app.distanceMeters) } : {}),
+  };
+}
+
 export const createApplicationHandler = asyncHandler(async (req, res) => {
   const app = await providerService.createApplication(req.user!.id, req.body);
-  sendSuccess(res, { application: toPublicApplication(app) }, 201);
+  sendSuccess(res, { application: toApplicationView(app) }, 201);
 });
 
 export const addDocumentHandler = asyncHandler(async (req, res) => {
@@ -54,32 +94,32 @@ export const addDocumentHandler = asyncHandler(async (req, res) => {
     req.body.documentType,
     req.file,
   );
-  sendSuccess(res, { application: toPublicApplication(app) });
+  sendSuccess(res, { application: toApplicationView(app) });
 });
 
 export const submitApplicationHandler = asyncHandler(async (req, res) => {
   const app = await providerService.submitApplication(req.params.id as string, req.user!.id);
-  sendSuccess(res, { application: toPublicApplication(app) });
+  sendSuccess(res, { application: toApplicationView(app) });
 });
 
 export const listMineHandler = asyncHandler(async (req, res) => {
   const { items, meta } = await providerService.listMine(req.user!.id, req.query as Record<string, unknown>);
-  sendSuccess(res, { applications: items.map(toPublicApplication) }, 200, meta);
+  sendSuccess(res, { applications: items.map(toApplicationView) }, 200, meta);
 });
 
 export const listAdminHandler = asyncHandler(async (req, res) => {
   const { items, meta } = await providerService.listForAdmin(req.query as Record<string, unknown>);
-  sendSuccess(res, { applications: items.map(toPublicApplication) }, 200, meta);
+  sendSuccess(res, { applications: items.map(toApplicationView) }, 200, meta);
 });
 
 export const getApplicationHandler = asyncHandler(async (req, res) => {
   const app = await providerService.getApplicationById(req.params.id as string, req.user!);
-  sendSuccess(res, { application: toPublicApplication(app) });
+  sendSuccess(res, { application: toApplicationView(app) });
 });
 
 export const transitionHandler = asyncHandler(async (req, res) => {
   const app = await providerService.transition(req.params.id as string, req.user!.id, req.body);
-  sendSuccess(res, { application: toPublicApplication(app) });
+  sendSuccess(res, { application: toApplicationView(app) });
 });
 
 export const reportApplicationHandler = asyncHandler(async (req, res) => {
@@ -96,4 +136,20 @@ export const downloadDocumentHandler = asyncHandler(async (req, res) => {
   res.setHeader('Content-Type', document.mimeType);
   res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(document.originalFilename)}"`);
   res.send(buffer);
+});
+
+export const updateListingInfoHandler = asyncHandler(async (req, res) => {
+  const app = await providerService.updateListingInfo(req.params.id as string, req.user!.id, req.body);
+  sendSuccess(res, { application: toApplicationView(app) });
+});
+
+export const searchPublicProvidersHandler = asyncHandler(async (req, res) => {
+  const query = req.validatedQuery as SearchProvidersQuery;
+  const { items, meta } = await providerService.searchPublicProviders(query);
+  sendSuccess(res, { providers: items.map(toPublicListing) }, 200, meta);
+});
+
+export const getPublicProviderHandler = asyncHandler(async (req, res) => {
+  const app = await providerService.getPublicProviderById(req.params.id as string);
+  sendSuccess(res, { provider: toPublicListing(app) });
 });

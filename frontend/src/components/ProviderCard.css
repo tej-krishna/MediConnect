@@ -1,0 +1,37 @@
+.provider-card {
+  text-align: left;
+}
+
+.provider-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.provider-card__header h3 { margin: 0; }
+
+.provider-card__type {
+  margin: 2px 0 8px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.provider-card__address {
+  margin: 0 0 8px;
+}
+
+.provider-card__meta {
+  display: flex;
+  gap: 16px;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.provider-card__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}

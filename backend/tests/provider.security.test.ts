@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
-import mongoose from 'mongoose';
+import { connectDatabase, disconnectDatabase } from '../src/config/db';
 import { createApp } from '../src/app';
 import { env } from '../src/config/env';
 import { registerAndLogin, registerAdminAndLogin, authHeader, uniqueEmail } from './helpers';
@@ -33,11 +33,11 @@ describe('provider applications: fraud and abuse controls', () => {
   const app = createApp();
 
   beforeAll(async () => {
-    await mongoose.connect(env.MONGO_URI);
+    await connectDatabase(env.MONGO_URI);
   });
 
   afterAll(async () => {
-    await mongoose.disconnect();
+    await disconnectDatabase();
   });
 
   it('blocks a second user from claiming an already-active registration number', async () => {

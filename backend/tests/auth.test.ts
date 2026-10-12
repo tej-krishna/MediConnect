@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
-import mongoose from 'mongoose';
+import { connectDatabase, disconnectDatabase } from '../src/config/db';
 import { createApp } from '../src/app';
 import { env } from '../src/config/env';
 
@@ -23,11 +23,11 @@ describe('auth: register, login, refresh, logout', () => {
   const app = createApp();
 
   beforeAll(async () => {
-    await mongoose.connect(env.MONGO_URI);
+    await connectDatabase(env.MONGO_URI);
   });
 
   afterAll(async () => {
-    await mongoose.disconnect();
+    await disconnectDatabase();
   });
 
   it('registers a new patient account with the password hashed, never returned', async () => {

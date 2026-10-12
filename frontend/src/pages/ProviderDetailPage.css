@@ -1,0 +1,32 @@
+.detail-page {
+  padding: 24px 16px 64px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.detail-card {
+  margin-top: 16px;
+  text-align: left;
+}
+
+.detail-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.detail-card__section {
+  margin-top: 20px;
+}
+.detail-card__section h3 {
+  margin-bottom: 4px;
+  font-size: 0.95rem;
+}
+
+.detail-card__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 28px;
+  flex-wrap: wrap;
+}

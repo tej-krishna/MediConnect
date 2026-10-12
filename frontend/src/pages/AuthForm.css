@@ -1,0 +1,22 @@
+.auth-page {
+  display: flex;
+  justify-content: center;
+  padding: 48px 16px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+}
+
+.auth-switch {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 0.9rem;
+}
+
+.auth-forgot {
+  text-align: right;
+  font-size: 0.85rem;
+  margin: -8px 0 16px;
+}

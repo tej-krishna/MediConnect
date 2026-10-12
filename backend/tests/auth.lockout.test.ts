@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
-import mongoose from 'mongoose';
+import { connectDatabase, disconnectDatabase } from '../src/config/db';
 import { createApp } from '../src/app';
 import { env } from '../src/config/env';
 import { MAX_LOGIN_ATTEMPTS } from '../src/config/constants';
@@ -15,11 +15,11 @@ describe('auth: account lockout after repeated failed logins', () => {
   const app = createApp();
 
   beforeAll(async () => {
-    await mongoose.connect(env.MONGO_URI);
+    await connectDatabase(env.MONGO_URI);
   });
 
   afterAll(async () => {
-    await mongoose.disconnect();
+    await disconnectDatabase();
   });
 
   it(`locks the account after ${MAX_LOGIN_ATTEMPTS} failed attempts and blocks even a correct password`, async () => {

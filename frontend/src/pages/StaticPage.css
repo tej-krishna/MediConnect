@@ -1,0 +1,13 @@
+.static-page {
+  padding: 40px 16px 64px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.static-page h2 {
+  margin-top: 2em;
+}
+
+.static-page section:first-of-type h2 {
+  margin-top: 1em;
+}

@@ -184,3 +184,40 @@ built versus planned. Entries are added here at the end of each phase, not in ad
   filename or guessed. All document access goes through an authorized download endpoint
   (owner or `super_admin` only) that resolves a document ID to a storage key server-side — there is no
   static file serving of the private storage root.
+
+### Phase 4 — Website foundation and patient discovery
+
+- **Two provider response shapes, never shared.** The owner/admin view (`toApplicationView`) and the
+  public discovery view (`toPublicListing`) are separate mapper functions in
+  `provider.controller.ts`, not one shape with fields conditionally stripped. That makes it
+  structurally impossible for a future change to the admin view (e.g. adding a new internal field)
+  to leak into the public API by accident — someone has to deliberately add a field to the public
+  mapper for it to ever reach an unauthenticated response.
+- **Public discovery re-derives "actively verified" on every query**, via the same
+  `status === 'approved' && (!expiresAt || expiresAt > now)` check `isActivelyVerified()` uses — it
+  does not trust a cached or denormalized "isVerified" flag. A provider that was approved and later
+  suspended or whose verification expired disappears from search and returns 404 on its detail page
+  immediately, with no separate cleanup step required.
+- **Geo search uses `$geoNear` (aggregation) for the sorted/paginated list and `$geoWithin` +
+  `$centerSphere` (plain query) for the total count**, rather than `$near`/`$nearSphere` for both.
+  MongoDB doesn't allow `$near` inside an aggregation `$match`, and `countDocuments()` runs as an
+  aggregation internally — so getting both a distance-sorted page and an accurate total in one
+  consistent request needs these two different geospatial operators for the two different jobs.
+- **City-name fallback is a case-insensitive substring match on `address.city`, not geocoding.** No
+  geocoding provider is configured (same "don't fabricate an integration" rule as provider
+  verification), so when a patient can't or won't share location, search falls back to the city they
+  typed rather than pretending to compute a distance that doesn't exist. The input is regex-escaped
+  before use to avoid both injection and accidental catastrophic patterns.
+- **Access token lives only in a React state variable (via a module-level variable in
+  `apiClient.ts`, never `localStorage`/`sessionStorage`)**, consistent with the Phase 2 cookie/body
+  split: it's gone on a hard reload by design, and `AuthProvider`'s mount effect calls
+  `POST /auth/refresh` (which relies solely on the HttpOnly cookie) to silently re-establish it. A
+  401 from any other API call triggers exactly one silent refresh-and-retry before giving up, so an
+  expired access token doesn't surface as a visible error if the refresh token is still valid.
+- **`connectDatabase()` now awaits every model's index build before returning** (`model.init()` for
+  everything registered on the connection). Without this, `$geoNear` run immediately after startup
+  against a fresh database can fail because mongoose creates declared indexes asynchronously in the
+  background after `connect()` resolves — a race that's easy to miss in development against a
+  long-running database (indexes are usually already built) but shows up reliably against a fresh
+  one. All backend tests connect through this same function now instead of a raw `mongoose.connect`,
+  so the test suite exercises the exact startup path production uses.

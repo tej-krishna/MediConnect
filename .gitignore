@@ -28,6 +28,9 @@ Thumbs.db
 # Test coverage
 coverage/
 
+# mongodb-memory-server scratch data (redirected off the system drive — see tests/globalSetup.ts)
+backend/.tmp-mongodb-memory-server/
+
 # Mobile (Flutter) - added in later phase
 mobile/build/
 mobile/.dart_tool/

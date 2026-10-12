@@ -41,3 +41,33 @@ export async function registerAdminAndLogin(app: Express) {
 export function authHeader(token: string) {
   return { Authorization: `Bearer ${token}` };
 }
+
+export async function createApprovedProvider(
+  app: Express,
+  ownerToken: string,
+  adminToken: string,
+  payload: Record<string, unknown>,
+) {
+  const createRes = await request(app)
+    .post(`${base}/providers/applications`)
+    .set(authHeader(ownerToken))
+    .send(payload);
+  const appId = createRes.body.data.application.id as string;
+
+  await request(app)
+    .post(`${base}/providers/applications/${appId}/documents`)
+    .set(authHeader(ownerToken))
+    .field('documentType', 'license')
+    .attach('document', Buffer.from('fake'), { filename: 'license.pdf', contentType: 'application/pdf' });
+  await request(app).post(`${base}/providers/applications/${appId}/submit`).set(authHeader(ownerToken));
+  await request(app)
+    .post(`${base}/providers/admin/${appId}/transition`)
+    .set(authHeader(adminToken))
+    .send({ action: 'start_review' });
+  const approveRes = await request(app)
+    .post(`${base}/providers/admin/${appId}/transition`)
+    .set(authHeader(adminToken))
+    .send({ action: 'approve' });
+
+  return { appId, application: approveRes.body.data.application };
+}

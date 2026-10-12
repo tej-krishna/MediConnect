@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
-import mongoose from 'mongoose';
+import { connectDatabase, disconnectDatabase } from '../src/config/db';
 import { createApp } from '../src/app';
 import { env } from '../src/config/env';
 import { User } from '../src/modules/users/user.model';
@@ -25,11 +25,11 @@ describe('provider applications: full lifecycle', () => {
   const app = createApp();
 
   beforeAll(async () => {
-    await mongoose.connect(env.MONGO_URI);
+    await connectDatabase(env.MONGO_URI);
   });
 
   afterAll(async () => {
-    await mongoose.disconnect();
+    await disconnectDatabase();
   });
 
   it('walks an application from draft through approval and grants the provider role', async () => {

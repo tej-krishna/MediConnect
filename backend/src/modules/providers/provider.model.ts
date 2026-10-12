@@ -53,6 +53,12 @@ const providerApplicationSchema = new Schema(
     contactPhone: { type: String, required: true, trim: true },
     contactEmail: { type: String, required: true, trim: true, lowercase: true },
     address: { type: addressSchema, required: true },
+    location: {
+      type: { type: String, enum: ['Point'], default: undefined },
+      coordinates: { type: [Number], default: undefined },
+    },
+    consultationFee: { type: Number, default: null, min: 0 },
+    operatingHoursNote: { type: String, default: null, trim: true, maxlength: 200 },
     documents: { type: [documentSchema], default: [] },
     status: { type: String, enum: APPLICATION_STATUSES, default: 'draft', index: true },
     statusHistory: { type: [statusHistoryEntrySchema], default: [] },
@@ -70,6 +76,7 @@ const providerApplicationSchema = new Schema(
 );
 
 providerApplicationSchema.index({ providerType: 1, registrationNumber: 1 });
+providerApplicationSchema.index({ location: '2dsphere' });
 
 export interface ProviderDocumentSubdoc {
   _id: Types.ObjectId;
@@ -91,6 +98,9 @@ export interface ProviderApplicationAttrs {
   contactPhone: string;
   contactEmail: string;
   address: { line1: string; city: string; state: string; postalCode: string; country: string };
+  location?: { type: 'Point'; coordinates: [number, number] } | null;
+  consultationFee: number | null;
+  operatingHoursNote: string | null;
   documents: Types.DocumentArray<ProviderDocumentSubdoc>;
   status: string;
   statusHistory: { status: string; changedAt: Date; changedBy: Types.ObjectId | null; reason: string | null }[];

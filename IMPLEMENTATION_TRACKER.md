@@ -6,8 +6,8 @@ A task is marked `[x]` only after its code, tests, and manual verification all p
 `ARCHITECTURE.md` for the decisions behind these choices and `README.md` for how to run each
 package.
 
-**Current phase: Phase 4 — React Website Foundation and Patient Discovery**
-**Next task: 4.1 — Landing, auth, and static pages with the shared design system**
+**Current phase: Phase 5 — Doctor, Hospital and Clinic Workflows**
+**Next task: 5.1 — Provider dashboards; organization/facility profile and staff membership permissions**
 
 ---
 
@@ -69,9 +69,20 @@ package.
 
 ## Phase 4 — React Website Foundation and Patient Discovery
 
-- [ ] 4.1 — Landing, auth, and static pages (contact/help/privacy/terms) with the shared design system.
-- [ ] 4.2 — Nearby-provider discovery: location permission + manual fallback, search, filters, sort by distance.
-- [ ] 4.3 — Provider listing/detail pages wired to real persisted data; loading/empty/offline/error states.
+- [x] 4.1 — React Router site shell (`src/App.tsx`, `src/layouts/MainLayout.tsx`) with a calm healthcare design system (`src/index.css` — teal primary palette, reusable `.btn`/`.card`/`.form-field`/`.alert` classes); landing page, login/register pages, and forgot/reset-password pages wired to the full Phase 2 auth API; static contact/help/privacy/terms pages with real (clearly-marked-draft, not fabricated-final) copy. Session handling deferred from Phase 2 is implemented here: `src/app/AuthContext.tsx` (access token held in memory only, silent `/auth/refresh` restore on load) and `src/app/ProtectedRoute.tsx` (redirects to `/login`, returns after); `/account` is the protected page proving it end-to-end.
+- [x] 4.2 — Nearby-provider discovery (`src/pages/ProviderSearchPage.tsx`, `src/hooks/useGeolocation.ts`): browser geolocation permission with an explicit manual city-name fallback when denied/unavailable/declined, a provider-type filter, and results sorted by real distance when geolocation is used. Backend gained a **public, unauthenticated** discovery API to support this — `GET /providers/search` and `GET /providers/search/:id` (`src/modules/providers/provider.service.ts: searchPublicProviders/getPublicProviderById`) — using MongoDB `$geoNear` for radius+distance search and a case-insensitive `address.city` match for the manual fallback; both paths are restricted to `status: 'approved'` and not past `expiresAt`, computed the same way `isActivelyVerified()` does, so nothing pending/rejected/suspended/expired can ever appear. A separate `toPublicListing` response mapper (distinct from the owner/admin `toApplicationView`) deliberately excludes `registrationNumber`, `contactEmail`, `documents`, and `statusHistory`.
+- [x] 4.3 — Provider cards (`src/components/ProviderCard.tsx`) and the detail page (`src/pages/ProviderDetailPage.tsx`) are wired to that real API — verified badge, address, consultation fee, operating hours, Call (`tel:`) and Directions (maps) actions — with explicit loading/empty/error states on the search page and a not-found state on the detail page for an unverified/removed provider ID. `consultationFee`/`operatingHoursNote`/`location` were added to the provider model in this phase (optional at application creation, editable after via the new owner-only `PATCH /providers/applications/:id/listing-info`) specifically so these display fields are backed by real data rather than being left blank or fabricated; Phase 5 will build the fuller scheduling/availability system on top.
+
+**Evidence:**
+- Backend: `npm run typecheck`, `npm run build`, `npm run lint` all pass; `npx vitest run` → 9 files / 33 tests passing, including a new `tests/provider.discovery.test.ts` (geo search returns only in-radius actively-verified providers sorted by distance and excludes one simulated as past-expiry; city fallback; public shape never leaks registration number/email/documents/statusHistory; listing-info update is owner-only).
+- A real `2dsphere`-index race was caught and fixed during this phase: mongoose builds declared indexes asynchronously after `connect()`, so a `$geoNear` query issued immediately after startup against a fresh database intermittently failed with "requires a 2d or 2dsphere index, but none were found." `connectDatabase()` (`src/config/db.ts`) now awaits `model.init()` for every registered model before returning. All test files were switched from raw `mongoose.connect`/`disconnect` to this same `connectDatabase`/`disconnectDatabase`, so tests exercise the identical startup path production uses.
+- Frontend: `npm run build` and `npm run lint` pass (3 pre-existing warnings accepted as correct patterns — see Known issues).
+- Full manual browser verification (Claude's built-in browser pane) against both dev servers with a real MongoDB instance: register → auto-login → protected `/account` page → hard-reload session persistence (silent refresh) → logout → `/account` correctly redirects to `/login` → provider search by city returns a real API-approved provider as a card → provider detail page renders the same data → forgot-password → reset-password (token read from the logged notification) → login with the new password, all against live network calls, not mocked. Mobile (375px) viewport checked; one apparent rendering gap turned out to be a screenshot-scaling artifact, not a real layout bug (confirmed via `getBoundingClientRect()` — every element was genuinely 375px wide).
+
+**Known issues / deferred:**
+- Three frontend lint warnings are accepted, not fixed: `AuthContext.tsx` co-exports the `useAuth` hook alongside the `AuthProvider` component (a standard, widely-used React pattern; splitting it into a second file purely to satisfy a Fast-Refresh heuristic was judged not worth the fragmentation), and two `set-state-in-effect` warnings on the search/detail pages for the standard fetch-in-effect-then-setState data-loading pattern.
+- This machine's **C: system drive was critically low on free space (under 1GB)** during this phase, which made MongoDB itself (including the pre-existing local Windows MongoDB service, not just test infrastructure) refuse to create indexes or sometimes crash outright — unrelated to any MediConnect code, but worth the user's attention, since it will affect other tools too. `tests/globalSetup.ts` now redirects `mongodb-memory-server`'s scratch data to a folder inside the repo (on a drive with space) specifically to keep automated tests reliable regardless.
+- No map view (list + distance only) — matches the brief's "avoid unnecessary heavy dependencies" guidance; can be added later without changing the API.
 
 ## Phase 5 — Doctor, Hospital and Clinic Workflows
 

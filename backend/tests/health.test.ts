@@ -1,16 +1,16 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
-import mongoose from 'mongoose';
+import { connectDatabase, disconnectDatabase } from '../src/config/db';
 import { createApp } from '../src/app';
 import { env } from '../src/config/env';
 
 describe('GET /api/v1/health', () => {
   beforeAll(async () => {
-    await mongoose.connect(env.MONGO_URI);
+    await connectDatabase(env.MONGO_URI);
   });
 
   afterAll(async () => {
-    await mongoose.disconnect();
+    await disconnectDatabase();
   });
 
   it('reports ok status and a connected database', async () => {

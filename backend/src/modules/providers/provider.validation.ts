@@ -9,6 +9,11 @@ export const addressSchema = z.object({
   country: z.string().trim().min(2).max(60).default('India'),
 });
 
+export const locationSchema = z.object({
+  lat: z.coerce.number().min(-90).max(90),
+  lng: z.coerce.number().min(-180).max(180),
+});
+
 export const createApplicationSchema = z.object({
   providerType: z.enum(PROVIDER_TYPES),
   organizationName: z.string().trim().min(2).max(160),
@@ -17,6 +22,25 @@ export const createApplicationSchema = z.object({
   contactPhone: z.string().trim().min(6).max(20),
   contactEmail: z.string().trim().toLowerCase().email(),
   address: addressSchema,
+  location: locationSchema.optional(),
+  consultationFee: z.coerce.number().min(0).max(1_000_000).optional(),
+  operatingHoursNote: z.string().trim().max(200).optional(),
+});
+
+export const updateListingInfoSchema = z.object({
+  location: locationSchema.optional(),
+  consultationFee: z.coerce.number().min(0).max(1_000_000).optional(),
+  operatingHoursNote: z.string().trim().max(200).optional(),
+});
+
+export const searchProvidersQuerySchema = z.object({
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
+  radiusKm: z.coerce.number().positive().max(200).default(25),
+  city: z.string().trim().min(1).max(80).optional(),
+  providerType: z.enum(PROVIDER_TYPES).optional(),
+  page: z.string().optional(),
+  limit: z.string().optional(),
 });
 
 export const documentMetaSchema = z.object({
@@ -46,3 +70,5 @@ export const listApplicationsQuerySchema = z.object({
 export type CreateApplicationInput = z.infer<typeof createApplicationSchema>;
 export type TransitionInput = z.infer<typeof transitionSchema>;
 export type ReportInput = z.infer<typeof reportSchema>;
+export type UpdateListingInfoInput = z.infer<typeof updateListingInfoSchema>;
+export type SearchProvidersQuery = z.infer<typeof searchProvidersQuerySchema>;

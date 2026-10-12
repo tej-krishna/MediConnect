@@ -5,7 +5,12 @@ import { storage } from '../../storage';
 import { User } from '../users/user.model';
 import { ProviderApplication, type ProviderApplicationDoc } from './provider.model';
 import { ALLOWED_TRANSITIONS, PROVIDER_TYPE_TO_ROLE, type ApplicationStatus } from './provider.types';
-import type { CreateApplicationInput, TransitionInput } from './provider.validation';
+import type {
+  CreateApplicationInput,
+  TransitionInput,
+  UpdateListingInfoInput,
+  SearchProvidersQuery,
+} from './provider.validation';
 
 const ACTIVE_STATUSES: ApplicationStatus[] = ['submitted', 'under_review', 'approved'];
 const DEFAULT_VERIFICATION_VALIDITY_MS = 365 * 24 * 60 * 60 * 1000;
@@ -59,6 +64,10 @@ async function detectSuspiciousSignals(
     : [];
 }
 
+function toGeoPoint(location: { lat: number; lng: number } | undefined) {
+  return location ? { type: 'Point' as const, coordinates: [location.lng, location.lat] as [number, number] } : undefined;
+}
+
 export async function createApplication(
   applicantUserId: string,
   input: CreateApplicationInput,
@@ -69,6 +78,7 @@ export async function createApplication(
   return ProviderApplication.create({
     userId: applicantUserId,
     ...input,
+    location: toGeoPoint(input.location),
     flagged: flagReasons.length > 0,
     flagReasons,
     statusHistory: [{ status: 'draft', changedAt: new Date(), changedBy: applicantUserId }],
@@ -158,6 +168,35 @@ export async function submitApplication(
   return app;
 }
 
+const LISTING_EDITABLE_STATUSES: ApplicationStatus[] = ['draft', 'submitted', 'under_review', 'approved', 'suspended'];
+
+export async function updateListingInfo(
+  applicationId: string,
+  requesterId: string,
+  input: UpdateListingInfoInput,
+): Promise<ProviderApplicationDoc> {
+  const app = await loadApplicationOr404(applicationId);
+  if (app.userId.toString() !== requesterId) {
+    throw AppError.forbidden();
+  }
+  if (!LISTING_EDITABLE_STATUSES.includes(app.status as ApplicationStatus)) {
+    throw AppError.conflict(`Cannot update listing info while the application is "${app.status}"`);
+  }
+
+  if (input.location) {
+    app.location = toGeoPoint(input.location);
+  }
+  if (input.consultationFee !== undefined) {
+    app.consultationFee = input.consultationFee;
+  }
+  if (input.operatingHoursNote !== undefined) {
+    app.operatingHoursNote = input.operatingHoursNote;
+  }
+
+  await app.save();
+  return app;
+}
+
 export async function listMine(userId: string, query: Record<string, unknown>) {
   const { page, limit, skip } = parsePagination(query);
   const [items, total] = await Promise.all([
@@ -178,6 +217,77 @@ export async function listForAdmin(query: Record<string, unknown>) {
     ProviderApplication.countDocuments(filter),
   ]);
   return { items, meta: buildPaginationMeta(page, limit, total) };
+}
+
+const EARTH_RADIUS_KM = 6378.1;
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildVerifiedFilter(providerType?: string): Record<string, unknown> {
+  const filter: Record<string, unknown> = {
+    status: 'approved',
+    $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }],
+  };
+  if (providerType) filter.providerType = providerType;
+  return filter;
+}
+
+/**
+ * Public, unauthenticated provider discovery. Only ever returns providers that are currently
+ * actively verified (approved and not past expiry) — never drafts, pending review, rejected,
+ * suspended, or expired applications, regardless of what filters are passed in.
+ */
+export async function searchPublicProviders(query: SearchProvidersQuery) {
+  const { page, limit, skip } = parsePagination(query as Record<string, unknown>);
+  const baseFilter = buildVerifiedFilter(query.providerType);
+
+  if (query.lat !== undefined && query.lng !== undefined) {
+    const radiusRadians = query.radiusKm / EARTH_RADIUS_KM;
+    const [items, total] = await Promise.all([
+      ProviderApplication.aggregate([
+        {
+          $geoNear: {
+            near: { type: 'Point', coordinates: [query.lng, query.lat] },
+            distanceField: 'distanceMeters',
+            maxDistance: query.radiusKm * 1000,
+            spherical: true,
+            query: baseFilter,
+          },
+        },
+        { $skip: skip },
+        { $limit: limit },
+      ]),
+      ProviderApplication.countDocuments({
+        ...baseFilter,
+        location: { $geoWithin: { $centerSphere: [[query.lng, query.lat], radiusRadians] } },
+      }),
+    ]);
+    return { items, meta: buildPaginationMeta(page, limit, total), mode: 'geo' as const };
+  }
+
+  const filter: Record<string, unknown> = { ...baseFilter };
+  if (query.city) {
+    filter['address.city'] = { $regex: new RegExp(escapeRegex(query.city), 'i') };
+  }
+
+  const [items, total] = await Promise.all([
+    ProviderApplication.find(filter).sort({ organizationName: 1 }).skip(skip).limit(limit),
+    ProviderApplication.countDocuments(filter),
+  ]);
+  return { items, meta: buildPaginationMeta(page, limit, total), mode: 'list' as const };
+}
+
+export async function getPublicProviderById(applicationId: string) {
+  if (!Types.ObjectId.isValid(applicationId)) {
+    throw AppError.notFound('Provider not found');
+  }
+  const app = await ProviderApplication.findOne({ _id: applicationId, ...buildVerifiedFilter() });
+  if (!app) {
+    throw AppError.notFound('Provider not found');
+  }
+  return app;
 }
 
 async function grantProviderRole(userId: Types.ObjectId, providerType: string) {
