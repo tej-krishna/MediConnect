@@ -6,8 +6,8 @@ A task is marked `[x]` only after its code, tests, and manual verification all p
 `ARCHITECTURE.md` for the decisions behind these choices and `README.md` for how to run each
 package.
 
-**Current phase: Phase 1 — Backend Foundation**
-**Next task: 1.1 — Express app skeleton with health endpoint, env config, and graceful shutdown**
+**Current phase: Phase 2 — Authentication and Authorization**
+**Next task: 2.1 — Registration/login/logout with password hashing and account lockout controls**
 
 ---
 
@@ -28,9 +28,17 @@ package.
 
 ## Phase 1 — Backend Foundation
 
-- [ ] 1.1 — Express app (`src/app.ts`) + server entry (`src/server.ts`): MongoDB connection via Mongoose, graceful shutdown, `GET /api/v1/health`.
-- [ ] 1.2 — Centralized request validation (zod) and centralized error-handling middleware with request IDs and structured logging (winston).
-- [ ] 1.3 — Security headers (helmet), CORS configuration, rate limiting (express-rate-limit); isolated test-database strategy (mongodb-memory-server) and consistent paginated-response convention.
+- [x] 1.1 — Express app (`src/app.ts`) + server entry (`src/server.ts`): env validation (`src/config/env.ts`, zod), MongoDB connection via Mongoose (`src/config/db.ts`), graceful shutdown, `GET /api/v1/health` (`src/modules/health/health.routes.ts`) reporting live DB connection state.
+- [x] 1.2 — Centralized request validation (zod `ZodError` branch) and centralized error-handling middleware (`src/middleware/errorHandler.ts`, `src/utils/AppError.ts`) with request IDs (`src/middleware/requestId.ts`) and structured logging (`src/utils/logger.ts`, winston + morgan).
+- [x] 1.3 — Security headers (helmet), CORS from `CORS_ORIGIN` env, rate limiting (express-rate-limit) on `/api/v1`; isolated test-database strategy via `mongodb-memory-server` (`tests/globalSetup.ts`) and a shared response/pagination convention (`src/utils/response.ts`).
+
+**Evidence:**
+- `npm run typecheck` and `npm run build` pass (split `tsconfig.json`/`tsconfig.build.json` so build only emits `src`, while typecheck also covers `tests`).
+- `npm run lint` clean (0 errors, 0 warnings).
+- `npx vitest run` → 2 files / 3 tests passing: `tests/app.test.ts` (app factory) and `tests/health.test.ts` (health endpoint reports `database: "connected"` against a real `mongodb-memory-server` instance spun up in `globalSetup.ts`; unknown route returns structured 404).
+- Manual end-to-end smoke test: started a throwaway `mongodb-memory-server` instance, ran `npx tsx src/server.ts` against its real URI, and confirmed via `curl`: `GET /api/v1/health` → `200 {"success":true,"data":{"status":"ok","database":"connected",...}}`; `GET /api/v1/does-not-exist` → `404` with structured error body; structured request-logged lines (with request IDs) appeared in the server log for both. Throwaway processes were torn down afterward.
+
+**Known issues:** none. Developers still need a real MongoDB instance (local install, Docker, or Atlas) for day-to-day `npm run dev`; automated tests do not depend on one since they use `mongodb-memory-server`.
 
 ## Phase 2 — Authentication and Authorization
 

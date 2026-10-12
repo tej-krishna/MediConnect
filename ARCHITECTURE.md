@@ -74,3 +74,28 @@ built versus planned. Entries are added here at the end of each phase, not in ad
 - Monorepo with independent `frontend/` and `backend/` npm packages (no workspace tooling added yet —
   not needed until there is a shared internal package to publish between them).
 - Backend currently exposes only `app.ts`/`server.ts` bootstrapping; no routes yet (added in Phase 1).
+
+### Phase 1 — Backend foundation
+
+- **Env validation at startup** (`src/config/env.ts`, zod): the process refuses to start with a clear
+  error message if required variables (e.g. `MONGO_URI`, JWT secrets) are missing or malformed,
+  instead of failing confusingly later at first use.
+- **Response envelope** (`src/utils/response.ts`): every success response is `{ success: true, data, meta? }`
+  and every error is `{ success: false, error: { code, message, details? }, requestId }`. Kept in one
+  place so every module (and the future Flutter client) can rely on one shape.
+- **`AppError` + centralized `errorHandler`**: route/service code throws `AppError.notFound()` /
+  `.badRequest()` / etc. instead of building response objects inline; the single error-handling
+  middleware (`src/middleware/errorHandler.ts`) is the only place that turns an error into an HTTP
+  response, a `ZodError` into a 400, or logs a 5xx. This keeps authorization/validation failures
+  consistent across every future module.
+- **Request ID middleware** runs first so every log line and every error response can be correlated
+  back to one request, including across the async MongoDB/service calls a request triggers.
+- **Split `tsconfig.json` / `tsconfig.build.json`**: the base config type-checks `src` and `tests`
+  together (`npm run typecheck`); the build config extends it but only emits `src`, so `tests/` isn't
+  pulled into `dist/` and `rootDir` stays strict. `npm run build` uses the build config.
+- **Test database**: `mongodb-memory-server` spins up a real (in-memory) MongoDB per test run via
+  Vitest's `globalSetup`, so integration tests exercise a real Mongoose connection without requiring
+  a developer to have MongoDB installed, and without mocking the database layer.
+- **Rate limiting** is applied globally to the whole `/api/v1` prefix for now (`express-rate-limit`,
+  configurable via env); tighter, endpoint-specific limits (login, OTP, uploads) are added in Phase 2
+  per the security requirements in the project brief.

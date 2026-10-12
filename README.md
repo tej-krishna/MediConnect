@@ -31,8 +31,9 @@ cp .env.example .env   # edit values as needed
 npm run dev             # starts the API with auto-reload
 ```
 
-The API listens on `http://localhost:5000` by default. Health check: `GET /api/v1/health`
-(added in Phase 1).
+The API listens on `http://localhost:5000` by default and requires a reachable MongoDB instance
+(see Prerequisites). Health check: `GET /api/v1/health` — returns `database: "connected"` once
+Mongoose has established a connection.
 
 Other backend scripts:
 
