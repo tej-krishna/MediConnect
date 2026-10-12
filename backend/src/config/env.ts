@@ -18,6 +18,7 @@ const envSchema = z.object({
   STORAGE_DRIVER: z.enum(['local']).default('local'),
   STORAGE_LOCAL_ROOT: z.string().default('./storage'),
   STORAGE_PRIVATE_ROOT: z.string().default('./storage/private'),
+  MAX_UPLOAD_SIZE_MB: z.coerce.number().int().positive().default(5),
 
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),

@@ -140,3 +140,47 @@ built versus planned. Entries are added here at the end of each phase, not in ad
   unlocking accounts. Once `lockUntil` has passed, the *next* login attempt is allowed to check the
   password again: if it's correct, the lock clears (`status` back to `active`, counters reset); if
   it's wrong, the account re-locks for another 15 minutes rather than clearing.
+
+### Phase 3 — Provider registration and verification
+
+- **The `ProviderApplication` status is the trust signal, not the `User` role.** A `User.roles`
+  entry like `doctor` only gates which provider-side UI/API surface an account can reach; whether
+  that provider should actually be shown to patients or allowed to accept bookings is decided by
+  re-checking `ProviderApplication.status` (via `isActivelyVerified()`) at query time, every time.
+  This is deliberate: a role, once granted, doesn't silently keep conferring trust after a provider
+  is suspended or their verification expires — suspending or expiring the *application* is enough,
+  with no need to also strip the role (which the provider might still legitimately need for other
+  purposes, e.g. viewing their own historical bookings).
+- **Roles are granted in exactly two places**, both server-controlled, never by the user: initial
+  self-registration always assigns `patient` ([[Phase 2]]), and `ProviderApplication` approval
+  `$addToSet`s the role mapped from `providerType` (`provider.types.ts: PROVIDER_TYPE_TO_ROLE`). No
+  other code path mutates `User.roles`.
+- **No real registry integration.** Doctor/facility/pharmacy registration numbers are recorded and
+  reviewed by a human admin; there is no Medical Council or Drug Control API to call against, and the
+  brief is explicit that fabricating one would be worse than not having it. `issuingAuthority` and
+  `registrationNumber` are captured so a real integration has somewhere to plug in later.
+- **Expiry is computed, not maintained.** `expiresAt` is stored, but "is this provider currently
+  verified" is always `status === 'approved' && expiresAt > now`, computed on read
+  (`isActivelyVerified()`). There's no cron job flipping `approved` to `expired` in the background —
+  one doesn't exist yet — so the stored `status` can lag reality by design; `isActivelyVerified()` is
+  the one function every other module should call, never a raw `status === 'approved'` check.
+  `mark_expired` exists as an explicit, admin-triggered transition for bookkeeping/audit-trail
+  purposes once a real scheduler is added.
+- **Duplicate detection is a hard block only for an active conflict.** Two different users racing to
+  claim the same `(providerType, registrationNumber)` while one of them is `submitted`/`under_review`/
+  `approved` is blocked outright (409) — this is the actual fraud case (impersonating someone else's
+  licence). The same user reapplying after a `rejected`/`expired` application with the same number is
+  allowed, since renewals and corrected resubmissions are legitimate.
+- **"Suspicious profile detection" is one honest heuristic, not a scoring model.** Sharing contact
+  details (phone or email) with a different account's application sets `flagged: true` and a specific
+  `flagReasons` entry, surfaced in the admin review queue — it never blocks the application. Likewise,
+  accumulating 3 reports auto-flags for review. Both are signals for a human reviewer, not automated
+  rejections, which matches the brief's instruction not to treat any automated check as proof of (or
+  disproof of) legitimacy.
+- **Document storage reuses the Phase 0 storage adapter.** Uploads go through `multer` with
+  memory storage (MIME type restricted to PDF/JPEG/PNG, size capped via `MAX_UPLOAD_SIZE_MB`) and are
+  handed to the same `StorageAdapter` interface as everything else; `LocalStorageAdapter` generates a
+  random UUID filename per file, so a document's storage path can never be derived from its original
+  filename or guessed. All document access goes through an authorized download endpoint
+  (owner or `super_admin` only) that resolves a document ID to a storage key server-side — there is no
+  static file serving of the private storage root.

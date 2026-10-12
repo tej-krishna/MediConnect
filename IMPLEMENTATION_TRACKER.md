@@ -6,8 +6,8 @@ A task is marked `[x]` only after its code, tests, and manual verification all p
 `ARCHITECTURE.md` for the decisions behind these choices and `README.md` for how to run each
 package.
 
-**Current phase: Phase 3 — Provider Registration and Verification**
-**Next task: 3.1 — Provider application model + document upload + status machine**
+**Current phase: Phase 4 — React Website Foundation and Patient Discovery**
+**Next task: 4.1 — Landing, auth, and static pages with the shared design system**
 
 ---
 
@@ -55,9 +55,17 @@ package.
 
 ## Phase 3 — Provider Registration and Verification
 
-- [ ] 3.1 — Provider application model + document upload; application status machine (draft/submitted/under_review/approved/rejected/suspended/expired).
-- [ ] 3.2 — Admin review queue with recorded decisions, audit history, verification expiry/renewal reminders.
-- [ ] 3.3 — Duplicate-registration and suspicious-profile detection; report-provider and suspend-provider workflows.
+- [x] 3.1 — `ProviderApplication` model (`src/modules/providers/provider.model.ts`) covering 10 provider types (doctor, hospital, clinic, pharmacy, diagnostic_lab, ambulance_provider, equipment_provider, mobile_van_operator, ngo_coordinator, insurance_provider); document upload via a storage-adapter seam (`src/storage/` — local disk today, server-generated UUID filenames, never served statically) behind `multer` memory-storage with MIME/size restrictions; full `draft → submitted → under_review → approved/rejected`, `approved ⇄ suspended`, `approved → expired` status machine enforced server-side (`provider.types.ts: ALLOWED_TRANSITIONS`), not just by the schema enum.
+- [x] 3.2 — Admin review queue (`GET /providers/admin`, filterable by status/providerType, paginated) with every decision recorded in `statusHistory` (status, actor, timestamp, reason) — a real audit trail, not just the current status; `approve` sets `verifiedAt`/`expiresAt` (default 1-year validity, admin-overridable) and grants the corresponding `User` role via `$addToSet` (the only other path besides initial patient self-registration that can add a role, and it's entirely admin-gated); `isActivelyVerified()` computes current trust status from `status` + `expiresAt` at read time rather than relying on a background job that doesn't exist; `mark_expired` is an explicit admin-triggered transition for bookkeeping once real past-expiry data exists.
+- [x] 3.3 — Duplicate detection blocks a second user from claiming an already-active (`submitted`/`under_review`/`approved`) `(providerType, registrationNumber)` pair, and blocks a user from opening a second in-progress application of the same provider type; a documented heuristic (shared contact phone/email with a different user's application) soft-flags new applications for admin attention without blocking them; `report-provider` (any authenticated user, only on non-draft applications) accumulates reports and auto-flags at 3; `suspend`/`reinstate` let an admin pull an approved provider out of (and back into) active standing, recorded in the same audit trail.
+
+**Evidence:**
+- `npm run typecheck`, `npm run build`, and `npm run lint` all pass with 0 errors/warnings.
+- `npx vitest run` → 29/29 tests passing across 8 files. New in this phase: `tests/provider.test.ts` (full draft→submit→review→approve lifecycle including the role grant, reject-with-reason, disallowed-file-type rejection, non-owner forbidden from viewing, non-admin forbidden from the review queue) and `tests/provider.security.test.ts` (duplicate-registration-number conflict across users, same-user in-progress duplicate conflict, shared-contact-info flagging, report-threshold auto-flagging, and document-download access control).
+- Manual end-to-end smoke test against a live (throwaway, in-memory) MongoDB: registered a user, created a pharmacy application, uploaded a real PDF over multipart/form-data, and confirmed via `find` that the file landed on disk under a server-generated UUID filename (`746984ba-...-....pdf`), not the original filename — i.e. not a guessable path. Throwaway server and storage directory were torn down afterward.
+- Note for future manual smoke tests: killing a `tsx`-spawned dev server from this Git Bash environment via `kill $!` does not reliably terminate the underlying `node.exe` on Windows — a stale listener survived from the Phase 1 smoke test and silently absorbed this phase's first attempt. Confirmed and killed via `Get-CimInstance Win32_Process` + `Stop-Process -Id <winpid> -Force` instead.
+
+**Known issues / deferred:** The "suspicious profile" check is a simple same-contact-details heuristic, not fraud scoring — it flags for human review, never blocks. Real medical-council/licensing-registry lookups are not integrated (none were available); verification is the manual admin-review workflow the brief asked for when no registry API exists. Rate limiting on the auth endpoints is widened to effectively unlimited when `NODE_ENV=test` so functional test suites (which log in many times) aren't blocked by it — a dedicated rate-limit/abuse test belongs to Phase 12.
 
 ## Phase 4 — React Website Foundation and Patient Discovery
 

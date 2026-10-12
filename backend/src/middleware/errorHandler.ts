@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
+import { MulterError } from 'multer';
 import { AppError } from '../utils/AppError';
 import { logger } from '../utils/logger';
 
@@ -16,6 +17,15 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     res.status(400).json({
       success: false,
       error: { code: 'VALIDATION_ERROR', message: 'Request validation failed', details: err.issues },
+      requestId: req.requestId,
+    });
+    return;
+  }
+
+  if (err instanceof MulterError) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'UPLOAD_ERROR', message: err.message },
       requestId: req.requestId,
     });
     return;
