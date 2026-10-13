@@ -15,6 +15,8 @@ import {
   listMyTicketsHandler,
   listAllTicketsHandler,
 } from './support.controller';
+import { initiateRefundSchema } from '../payments/transaction.validation';
+import { initiateRefundHandler } from '../payments/transaction.controller';
 
 export const supportRouter = Router();
 
@@ -31,3 +33,9 @@ supportRouter.get(
 supportRouter.get('/support/tickets/:id', getTicketHandler);
 supportRouter.post('/support/tickets/:id/messages', validateBody(addMessageSchema), addMessageHandler);
 supportRouter.post('/support/tickets/:id/status', validateBody(updateTicketStatusSchema), updateStatusHandler);
+supportRouter.post(
+  '/support/tickets/:id/refund',
+  requireRole('support', 'super_admin'),
+  validateBody(initiateRefundSchema),
+  initiateRefundHandler,
+);

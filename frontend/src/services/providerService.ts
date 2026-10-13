@@ -66,6 +66,18 @@ export async function uploadDocument(id: string, documentType: string, file: Fil
   return data.application;
 }
 
+export async function downloadDocument(applicationId: string, documentId: string): Promise<void> {
+  const { blob, filename } = await api.downloadFile(`/providers/applications/${applicationId}/documents/${documentId}/download`);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename ?? 'document';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 export async function submitApplication(id: string): Promise<OwnerProviderApplication> {
   const { data } = await api.post<{ application: OwnerProviderApplication }>(`/providers/applications/${id}/submit`);
   return data.application;
@@ -79,6 +91,38 @@ export async function updateListingInfo(
     `/providers/applications/${id}/listing-info`,
     input,
   );
+  return data.application;
+}
+
+export interface AdminListParams {
+  status?: string;
+  providerType?: string;
+  page?: number;
+}
+
+export async function listAdminApplications(params: AdminListParams = {}): Promise<{
+  applications: OwnerProviderApplication[];
+  meta?: PaginationMeta;
+}> {
+  const query = new URLSearchParams();
+  if (params.status) query.set('status', params.status);
+  if (params.providerType) query.set('providerType', params.providerType);
+  if (params.page) query.set('page', String(params.page));
+  const { data, meta } = await api.get<{ applications: OwnerProviderApplication[] }>(`/providers/admin?${query.toString()}`);
+  return { applications: data.applications, meta };
+}
+
+export type TransitionAction = 'start_review' | 'approve' | 'reject' | 'suspend' | 'reinstate' | 'mark_expired';
+
+export async function transitionApplication(
+  id: string,
+  action: TransitionAction,
+  reason?: string,
+): Promise<OwnerProviderApplication> {
+  const { data } = await api.post<{ application: OwnerProviderApplication }>(`/providers/admin/${id}/transition`, {
+    action,
+    reason,
+  });
   return data.application;
 }
 

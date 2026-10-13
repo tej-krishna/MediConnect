@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../app/AuthContext';
 import { getTicket, addMessage, updateTicketStatus } from '../services/supportService';
+import { initiateRefund } from '../services/transactionService';
 import { ApiError } from '../services/apiClient';
 import { TICKET_CATEGORY_LABELS } from '../types/support';
 import type { SupportTicket } from '../types/support';
@@ -16,6 +17,9 @@ export function SupportTicketDetailPage() {
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
   const [resolutionNote, setResolutionNote] = useState('');
+  const [refundAmount, setRefundAmount] = useState('');
+  const [initiatingRefund, setInitiatingRefund] = useState(false);
+  const [refundMessage, setRefundMessage] = useState<string | null>(null);
 
   const isStaff = user?.roles.includes('support') || user?.roles.includes('super_admin');
 
@@ -63,6 +67,22 @@ export function SupportTicketDetailPage() {
       await reload();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not update this ticket.');
+    }
+  }
+
+  async function handleInitiateRefund() {
+    if (!id || !refundAmount) return;
+    setInitiatingRefund(true);
+    setError(null);
+    setRefundMessage(null);
+    try {
+      await initiateRefund(id, Number(refundAmount));
+      setRefundAmount('');
+      setRefundMessage('Refund opened for manual review — settle it from Admin > Refund transactions.');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not initiate a refund.');
+    } finally {
+      setInitiatingRefund(false);
     }
   }
 
@@ -142,6 +162,34 @@ export function SupportTicketDetailPage() {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {isStaff && ticket.category === 'refund_request' && (
+        <div className="card">
+          <h3>Refund</h3>
+          <p className="text-muted">
+            No payment gateway is integrated — this opens a manual-review refund record, it does not
+            move money. Settle it afterward from Admin &gt; Refund transactions.
+          </p>
+          {refundMessage && <div className="alert alert-success">{refundMessage}</div>}
+          <div className="inline-form">
+            <div className="form-field">
+              <label htmlFor="refundAmount">Amount (₹)</label>
+              <input
+                id="refundAmount"
+                type="number"
+                min={0.01}
+                step="0.01"
+                style={{ width: 120 }}
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+              />
+            </div>
+            <button className="btn btn-secondary" disabled={!refundAmount || initiatingRefund} onClick={handleInitiateRefund}>
+              {initiatingRefund ? 'Opening…' : 'Open refund for review'}
+            </button>
+          </div>
         </div>
       )}
     </div>

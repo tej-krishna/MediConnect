@@ -109,19 +109,15 @@ export function AccountPage() {
         <div className="card" style={{ marginTop: 16 }}>
           <h3>Admin</h3>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {user.roles.includes('super_admin') && (
-              <Link to="/admin/emergency-guides" className="btn btn-secondary">
-                Manage emergency guidance
+            {user.roles.includes('super_admin') ? (
+              <Link to="/admin" className="btn btn-primary">
+                Admin dashboard
+              </Link>
+            ) : (
+              <Link to="/admin/support-tickets" className="btn btn-secondary">
+                All support tickets
               </Link>
             )}
-            {user.roles.includes('super_admin') && (
-              <Link to="/admin/delivery-partners" className="btn btn-secondary">
-                Delivery partner applications
-              </Link>
-            )}
-            <Link to="/admin/support-tickets" className="btn btn-secondary">
-              All support tickets
-            </Link>
           </div>
         </div>
       )}

@@ -35,6 +35,13 @@ import { AdminDeliveryPartnersPage } from './pages/AdminDeliveryPartnersPage';
 import { SupportPage } from './pages/SupportPage';
 import { SupportTicketDetailPage } from './pages/SupportTicketDetailPage';
 import { AdminSupportTicketsPage } from './pages/AdminSupportTicketsPage';
+import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { AdminProviderApplicationsPage } from './pages/AdminProviderApplicationsPage';
+import { AdminProviderApplicationDetailPage } from './pages/AdminProviderApplicationDetailPage';
+import { AdminUsersPage } from './pages/AdminUsersPage';
+import { AdminAnalyticsPage } from './pages/AdminAnalyticsPage';
+import { AdminAuditLogPage } from './pages/AdminAuditLogPage';
+import { AdminTransactionsPage } from './pages/AdminTransactionsPage';
 import { ContactPage } from './pages/ContactPage';
 import { HelpPage } from './pages/HelpPage';
 import { PrivacyPage } from './pages/PrivacyPage';
@@ -86,6 +93,13 @@ function App() {
               <Route path="support" element={<SupportPage />} />
               <Route path="support/:id" element={<SupportTicketDetailPage />} />
               <Route path="admin/support-tickets" element={<AdminSupportTicketsPage />} />
+              <Route path="admin" element={<AdminDashboardPage />} />
+              <Route path="admin/provider-applications" element={<AdminProviderApplicationsPage />} />
+              <Route path="providers/applications/:id/review" element={<AdminProviderApplicationDetailPage />} />
+              <Route path="admin/users" element={<AdminUsersPage />} />
+              <Route path="admin/analytics" element={<AdminAnalyticsPage />} />
+              <Route path="admin/audit-log" element={<AdminAuditLogPage />} />
+              <Route path="admin/transactions" element={<AdminTransactionsPage />} />
             </Route>
             <Route path="*" element={<NotFoundPage />} />
           </Route>

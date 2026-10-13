@@ -3,6 +3,8 @@ import { AppError } from '../../utils/AppError';
 import { parsePagination, buildPaginationMeta } from '../../utils/response';
 import { storage } from '../../storage';
 import { User } from '../users/user.model';
+import { recordAudit } from '../admin/auditLog.service';
+import { notificationService } from '../../services/notification.service';
 import { ProviderApplication, type ProviderApplicationDoc } from './provider.model';
 import { ALLOWED_TRANSITIONS, PROVIDER_TYPE_TO_ROLE, type ApplicationStatus } from './provider.types';
 import type {
@@ -363,6 +365,26 @@ export async function transition(
   app.statusHistory.push({ status: targetStatus, changedAt: now, changedBy: new Types.ObjectId(actorId), reason });
 
   await app.save();
+
+  await recordAudit({
+    actorId,
+    action: 'provider_application_transition',
+    targetType: 'ProviderApplication',
+    targetId: applicationId,
+    metadata: { action: input.action, providerType: app.providerType },
+  });
+
+  if (input.action === 'approve' || input.action === 'reject' || input.action === 'suspend') {
+    const subject = `Your ${app.organizationName} application is now "${targetStatus}"`;
+    const body =
+      input.action === 'reject'
+        ? `Reason: ${app.rejectionReason}`
+        : input.action === 'suspend'
+          ? `Reason: ${app.suspensionReason}`
+          : 'Congratulations — you can now manage your listing from your dashboard.';
+    await notificationService.notify(app.userId.toString(), subject, body);
+  }
+
   return app;
 }
 

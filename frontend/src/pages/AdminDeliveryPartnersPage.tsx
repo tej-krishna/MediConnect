@@ -10,6 +10,7 @@ export function AdminDeliveryPartnersPage() {
   const [profiles, setProfiles] = useState<DeliveryPartnerProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reasonDraft, setReasonDraft] = useState<Record<string, string>>({});
 
   const isAdmin = user?.roles.includes('super_admin');
   const isStaff = isAdmin || user?.roles.includes('support');
@@ -36,10 +37,13 @@ export function AdminDeliveryPartnersPage() {
 
   async function handleReview(id: string, action: 'approve' | 'reject' | 'suspend') {
     setError(null);
+    const reason = reasonDraft[id]?.trim();
+    if (action !== 'approve' && !reason) {
+      setError('Enter a reason before rejecting or suspending.');
+      return;
+    }
     try {
-      const reason = action !== 'approve' ? window.prompt('Reason?') ?? undefined : undefined;
-      if (action !== 'approve' && !reason) return;
-      await reviewDeliveryPartner(id, action, reason);
+      await reviewDeliveryPartner(id, action, action !== 'approve' ? reason : undefined);
       await reload();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not update this application.');
@@ -59,6 +63,7 @@ export function AdminDeliveryPartnersPage() {
             <th>Vehicle</th>
             <th>City</th>
             <th>Status</th>
+            <th>Reason (reject/suspend)</th>
             <th />
           </tr>
         </thead>
@@ -69,6 +74,15 @@ export function AdminDeliveryPartnersPage() {
               <td>{p.vehicleType.replace(/_/g, ' ')}</td>
               <td>{p.serviceCity}</td>
               <td>{p.status}</td>
+              <td>
+                {isAdmin && (p.status === 'pending' || p.status === 'approved') && (
+                  <input
+                    placeholder="Required for reject/suspend"
+                    value={reasonDraft[p.id] ?? ''}
+                    onChange={(e) => setReasonDraft((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                  />
+                )}
+              </td>
               <td style={{ display: 'flex', gap: 6 }}>
                 {isAdmin && p.status === 'pending' && (
                   <>
@@ -95,7 +109,7 @@ export function AdminDeliveryPartnersPage() {
           ))}
           {profiles.length === 0 && (
             <tr>
-              <td colSpan={5} className="text-muted">
+              <td colSpan={6} className="text-muted">
                 No applications yet.
               </td>
             </tr>

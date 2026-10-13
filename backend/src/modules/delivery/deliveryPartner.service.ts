@@ -2,6 +2,8 @@ import { Types } from 'mongoose';
 import { AppError } from '../../utils/AppError';
 import { parsePagination, buildPaginationMeta } from '../../utils/response';
 import { User } from '../users/user.model';
+import { recordAudit } from '../admin/auditLog.service';
+import { notificationService } from '../../services/notification.service';
 import { DeliveryPartnerProfile, type DeliveryPartnerProfileDoc } from './deliveryPartner.model';
 import type { ApplyDeliveryPartnerInput, ReviewDeliveryPartnerInput } from './delivery.validation';
 
@@ -64,6 +66,21 @@ export async function review(
   profile.reviewedBy = new Types.ObjectId(reviewerId);
   profile.reviewedAt = new Date();
   await profile.save();
+
+  await recordAudit({
+    actorId: reviewerId,
+    action: 'delivery_partner_review',
+    targetType: 'DeliveryPartnerProfile',
+    targetId: profileId,
+    metadata: { action: input.action },
+  });
+
+  await notificationService.notify(
+    profile.userId.toString(),
+    `Your delivery partner application is now "${profile.status}"`,
+    profile.rejectionReason ? `Reason: ${profile.rejectionReason}` : 'You can now accept deliveries.',
+  );
+
   return profile;
 }
 

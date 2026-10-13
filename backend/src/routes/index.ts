@@ -10,6 +10,7 @@ import { medicalRecordsRouter } from '../modules/medicalRecords/medicalRecords.r
 import { homecareRouter } from '../modules/homecare/homecare.routes';
 import { deliveryRouter } from '../modules/delivery/delivery.routes';
 import { supportRouter } from '../modules/support/support.routes';
+import { adminRouter } from '../modules/admin/admin.routes';
 
 export const apiRouter = Router();
 
@@ -24,3 +25,4 @@ apiRouter.use(medicalRecordsRouter);
 apiRouter.use(homecareRouter);
 apiRouter.use(deliveryRouter);
 apiRouter.use(supportRouter);
+apiRouter.use(adminRouter);

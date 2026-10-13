@@ -451,3 +451,68 @@ built versus planned. Entries are added here at the end of each phase, not in ad
   underlying shape of the problem (a customer-facing actor and an operator-facing actor needing
   different permissions on the same record) is the same one, and reusing a proven shape is safer than
   inventing a new permission model per feature.
+
+### Phase 11 — Admin, revenue and platform operations
+
+- **A `super_admin` can never suspend another `super_admin`, or themselves.** The only way to remove
+  platform-admin access is a direct database edit, not a UI action available to any admin account.
+  This is a deliberate floor: without it, a compromised or simply careless admin session could lock
+  out every other admin (including itself), and there would be no way back in through the app's own
+  UI. A capability this destructive to the platform's own operability needs to require stepping
+  outside the normal admin surface entirely, not just an extra confirmation dialog.
+- **The provider-verification review UI was missing for seven phases, and nobody noticed until Phase
+  11 built it.** `GET /providers/admin` and `POST /providers/admin/:id/transition` have existed since
+  Phase 3; every single manual-verification pass from Phase 3 through Phase 10 approved providers by
+  calling those endpoints directly, because no frontend page ever consumed them. This is worth stating
+  plainly rather than glossing over: a backend capability with no UI is not a finished feature, even if
+  every test for it passes, and "the API already does this" had quietly become an excuse not to check
+  whether a real admin could actually use the product. Phase 11.1 closing this gap is itself evidence
+  for why "verification review" was named explicitly in the brief's Phase 11 scope rather than assumed
+  complete.
+- **Revenue analytics are computed live from source collections on every request, not from a
+  pre-aggregated rollup table.** A rollup is the standard answer once this kind of aggregate query
+  gets expensive, but it introduces a second source of truth that can silently drift from the orders
+  it summarizes — a bug in a rollup-maintenance job produces a number that looks authoritative and is
+  wrong. At this project's data volume, computing it live is both simpler and strictly more correct;
+  a rollup is a performance optimization to reach for later if the live aggregation ever actually
+  becomes slow, not a default to build pre-emptively against a problem that doesn't exist yet.
+- **Commission is a flat, admin-configured percentage per provider type, not a contract/negotiation
+  system.** The brief asks for "configurable commission rules," and the honest reading of what's
+  buildable without a real finance/legal process behind it is exactly this: one number per provider
+  type that an admin can see and change, applied uniformly. A per-provider negotiated-rate system
+  would imply a business process (contracts, approvals, effective-dating) that doesn't exist anywhere
+  else in this codebase and wasn't asked for — building it would be solving an imagined requirement,
+  not the stated one.
+- **`ManualPaymentProvider` never claims to move money, and `verifyWebhookSignature()` always returns
+  `false`.** This mirrors the exact reasoning behind `ConsoleNotificationService` (Phase 2) and
+  `LocalStorageAdapter` (Phase 0): no real payment gateway is configured anywhere in this codebase,
+  so the only honest implementation is one that records what a human needs to do manually and never
+  pretends otherwise. A refund "moves" through exactly one real state change in this system — a
+  `Transaction` document's status field — and the UI says so explicitly rather than implying a refund
+  button actually transfers funds. Building a fake "success" response would be actively dishonest
+  about a capability the system does not have.
+- **Refunds are scoped to support tickets, not bolted onto every order/appointment model.** A refund
+  only ever makes sense in response to a specific complaint a human is handling — there's no capability
+  anywhere in this codebase to *take* a payment in the first place (every order/appointment/booking
+  flow records a `totalAmount` but never actually charges one), so a generic "refund this order" button
+  on every transactional model would be refunding money that was never collected. Routing refunds
+  through the support-ticket workflow that already exists for exactly this kind of request keeps the
+  feature honest about what it's actually doing: opening a manual-review record tied to a specific
+  complaint, not simulating a payment reversal against a charge that was never real.
+- **A real `window.prompt()` bug, caught by browser verification, led to replacing it everywhere in
+  the admin surface, not just where it broke.** Four separate "enter a reason" admin actions had been
+  built with `window.prompt()` — it's quick to write and matches a common tutorial pattern — but it
+  silently failed in this project's automated browser pane (no network request was ever sent) and is
+  poor practice regardless: it blocks the main thread, can't be styled or validated inline, and is
+  increasingly disabled or auto-dismissed by browsers and extensions. Once the bug was found in one
+  place (transaction settlement), the fix was applied to all four occurrences discovered by searching
+  for the same pattern, not just the one that happened to get exercised first — the same category of
+  mistake, found once, is worth fixing everywhere it was made, not just where it was caught.
+- **`AuditLog` records decisions, not reads.** It captures provider-verification transitions,
+  delivery-partner review outcomes, support-ticket resolution/closure, user suspension, commission-rule
+  changes, and transaction settlement — the moments where a staff member's judgment changed something
+  about another user's access, money, or standing on the platform. It deliberately does not log every
+  `GET /admin/users` call or dashboard view; that's what request-level winston/morgan logging (Phase 1)
+  is for. Conflating "who looked at what" with "who decided what" would make the audit log noisy enough
+  that the signal that actually matters — accountability for consequential decisions — gets harder to
+  find, not easier.

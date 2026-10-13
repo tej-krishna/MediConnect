@@ -59,4 +59,7 @@ export interface OwnerProviderApplication {
   verifiedAt: string | null;
   expiresAt: string | null;
   isActivelyVerified: boolean;
+  flagged: boolean;
+  flagReasons: string[];
+  reportCount: number;
 }

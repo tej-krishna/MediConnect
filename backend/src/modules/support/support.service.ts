@@ -1,6 +1,8 @@
 import { Types } from 'mongoose';
 import { AppError } from '../../utils/AppError';
 import { parsePagination, buildPaginationMeta } from '../../utils/response';
+import { recordAudit } from '../admin/auditLog.service';
+import { notificationService } from '../../services/notification.service';
 import { SupportTicket, TICKET_STATUSES, type SupportTicketDoc } from './supportTicket.model';
 import type { CreateTicketInput, AddMessageInput, UpdateTicketStatusInput } from './support.validation';
 
@@ -102,6 +104,25 @@ export async function updateStatus(
     ticket.resolutionNote = input.resolutionNote;
   }
   await ticket.save();
+
+  if (input.action === 'resolve' || input.action === 'close') {
+    await recordAudit({
+      actorId: requester.id,
+      action: 'support_ticket_status_change',
+      targetType: 'SupportTicket',
+      targetId: ticketId,
+      metadata: { action: input.action },
+    });
+  }
+
+  if (input.action === 'resolve') {
+    await notificationService.notify(
+      ticket.createdBy.toString(),
+      `Your support ticket "${ticket.subject}" has been resolved`,
+      ticket.resolutionNote ?? '',
+    );
+  }
+
   return ticket;
 }
 

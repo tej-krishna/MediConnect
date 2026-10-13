@@ -8,6 +8,13 @@ import { logger } from '../utils/logger';
  */
 export interface NotificationService {
   sendPasswordResetEmail(to: string, rawToken: string): Promise<void>;
+  /**
+   * General-purpose status-change notification (provider verification decisions, delivery-partner
+   * review outcomes, support-ticket resolution, etc.) — one seam for every "tell the user something
+   * happened" call site, rather than a bespoke method per module. Still just logs; no real
+   * email/SMS/push provider is configured.
+   */
+  notify(userId: string, subject: string, body: string): Promise<void>;
 }
 
 class ConsoleNotificationService implements NotificationService {
@@ -16,6 +23,10 @@ class ConsoleNotificationService implements NotificationService {
       to,
       resetToken: rawToken,
     });
+  }
+
+  async notify(userId: string, subject: string, body: string): Promise<void> {
+    logger.info('Notification (delivery not configured)', { userId, subject, body });
   }
 }
 
