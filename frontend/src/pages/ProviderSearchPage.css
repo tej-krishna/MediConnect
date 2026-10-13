@@ -16,13 +16,22 @@
 
 .city-form {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 .city-form input {
   flex: 1;
+  min-width: 160px;
   padding: 0.6em 0.75em;
   border: 1px solid var(--color-border);
   border-radius: 8px;
+}
+.city-form select {
+  /* A <select>'s intrinsic width is sized to its longest option text (e.g. "Home visit service")
+     by default, which can exceed what's left in a narrow flex row alongside the input and
+     button — found via a real scrollWidth/clientWidth check at 375px, not visual inspection. */
+  min-width: 0;
+  max-width: 100%;
 }
 
 .search-controls {

@@ -4,6 +4,17 @@
   margin: 0 auto;
 }
 
+.dashboard-page {
+  /* A wide .simple-table (several text columns plus inline inputs) can need more width than a
+     narrow viewport has, whether or not it's wrapped in a .card — several admin list pages render
+     the table directly inside .dashboard-page. Scrolling the page's own content area horizontally
+     keeps that overflow contained instead of widening <html> itself: a bare `width: 100%` table
+     with no scrollable ancestor otherwise pushes `document.documentElement.scrollWidth` past the
+     viewport, found via a real mobile-width check (comparing scrollWidth/clientWidth), not just
+     visual inspection — a visual check alone missed it because the overflow is a thin sliver. */
+  overflow-x: auto;
+}
+
 .dashboard-page .card {
   margin-top: 16px;
   text-align: left;

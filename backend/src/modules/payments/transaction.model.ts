@@ -6,7 +6,7 @@ export const TRANSACTION_STATUSES = ['pending_manual_review', 'completed', 'reje
 const transactionSchema = new Schema(
   {
     type: { type: String, enum: TRANSACTION_TYPES, required: true },
-    status: { type: String, enum: TRANSACTION_STATUSES, required: true, default: 'pending_manual_review' },
+    status: { type: String, enum: TRANSACTION_STATUSES, required: true, default: 'pending_manual_review', index: true },
     patientId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     amount: { type: Number, required: true, min: 0 },
     currency: { type: String, required: true, default: 'INR' },

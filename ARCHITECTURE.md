@@ -516,3 +516,54 @@ built versus planned. Entries are added here at the end of each phase, not in ad
   is for. Conflating "who looked at what" with "who decided what" would make the audit log noisy enough
   that the signal that actually matters — accountability for consequential decisions — gets harder to
   find, not easier.
+
+### Phase 12 — Website quality and production readiness
+
+- **Rate limiting had been configured since Phase 1 but never actually proven to work.**
+  `createLimiter()` has always gone effectively unlimited whenever `NODE_ENV === 'test'`, specifically
+  so functional suites that log in dozens of times don't fail for unrelated reasons — a deliberate,
+  documented choice. But that same escape hatch meant no test in the suite had ever exercised the
+  branch where a limit is actually enforced; "the config exists" and "the config works" are different
+  claims, and only the first one had evidence behind it until this phase. The fix wasn't to remove the
+  escape hatch (every other test still needs it) — it's one dedicated test file that briefly flips
+  `env.NODE_ENV` to `'production'` for the handful of assertions that need the real behavior, then
+  restores it, so the one test that needs the limiter *on* doesn't force it on for anyone else.
+- **A mobile-layout check means measuring `scrollWidth` vs `clientWidth`, not looking at a
+  screenshot.** Phase 4 had already learned this lesson once — a screenshot that looked like a layout
+  bug turned out to be a rendering-scale artifact, confirmed only by checking `getBoundingClientRect()`
+  directly. This phase leaned on that lesson from the other direction: a systematic sweep using the
+  same kind of direct measurement found two real overflow bugs that a visual pass across the same pages
+  very plausibly would have missed, because the overflow in both cases was a thin sliver (57–116px) at
+  the right edge of a 375px viewport — easy to not notice in a screenshot, impossible to miss in a
+  number comparison. The lesson generalizes in both directions: don't trust a screenshot that looks
+  broken without checking the DOM, and don't trust a screenshot that looks fine without checking it
+  either.
+- **The horizontal-overflow fix was applied at the shared container level
+  (`.dashboard-page { overflow-x: auto }`), not per-page.** Six admin list pages added across Phases
+  10–11 all independently rendered a bare `<table className="simple-table">` with no wrapper, because
+  each one was built by copying the same established pattern from earlier phases — a pattern that had
+  never been checked at mobile width because none of the phases that established it had reason to
+  think a *table* needed the same mobile check a *search form* already got. Finding the bug once and
+  tracing it to the shared ancestor every affected page already had in common, rather than patching
+  each page's JSX individually, means the same class of bug can't recur the next time someone adds a
+  `.simple-table` to a new admin page — the fix generalizes to pages that don't exist yet, which a
+  per-page patch wouldn't have.
+- **The security/privacy review documents what's true, including what's missing, rather than reading
+  as a checklist of reassurances.** A security section that only lists what *is* protected reads as
+  marketing; one that's silent about what isn't implies more coverage than actually exists. This
+  project's standing practice — never claim a capability that doesn't exist, whether that's a payment
+  gateway, a reviewed clinical guide, or a CSRF framework — applies exactly the same way to documenting
+  security posture as it does to building any other feature: the honest version of "here's our security
+  review" names the gaps (no CSRF-specific scheme, no WAF, no CI-wired scanning, no third-party pen
+  test) in the same document as the things that are genuinely in place, so a reader can calibrate trust
+  correctly instead of assuming completeness that was never claimed outright but would otherwise be
+  implied by omission.
+- **No E2E browser-automation suite (Playwright, Cypress) was added.** Every multi-step journey in this
+  project — booking, ordering, verification, caregiver access, refunds, admin review — has instead been
+  verified manually through a real browser during its own phase's verification pass, against a live
+  backend and a real (if throwaway) database, never mocked. That's genuine evidence the feature works,
+  but it is not the same claim as "a repeatable, CI-runnable test suite exists for these journeys" —
+  the manual passes don't run again automatically the next time someone changes related code. Building
+  a proper E2E suite is a substantial scope of its own (environment setup, test-data fixtures, CI
+  wiring) that this phase's time was better spent finding and fixing the two real bugs above than
+  starting and leaving half-finished.

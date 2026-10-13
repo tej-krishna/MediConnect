@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import express from 'express';
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
 import { requireAuth, requireRole } from '../src/middleware/auth';
 import { errorHandler, notFoundHandler } from '../src/middleware/errorHandler';
 import { requestId } from '../src/middleware/requestId';
 import { signAccessToken } from '../src/modules/auth/jwt';
+import { env } from '../src/config/env';
 
 function buildTestApp() {
   const app = express();
@@ -46,5 +48,23 @@ describe('middleware: requireAuth / requireRole', () => {
     const token = signAccessToken({ sub: 'admin-1', roles: ['super_admin'] });
     const res = await request(app).get('/admin-only').set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
+  });
+
+  it('rejects an expired access token', async () => {
+    const token = jwt.sign({ sub: 'user-123', roles: ['patient'] }, env.JWT_ACCESS_SECRET, { expiresIn: -10 });
+    const res = await request(app).get('/protected').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects a token forged with the wrong secret, even with a valid-looking payload', async () => {
+    const forged = jwt.sign({ sub: 'user-123', roles: ['super_admin'] }, 'not-the-real-secret', { expiresIn: '15m' });
+    const res = await request(app).get('/admin-only').set('Authorization', `Bearer ${forged}`);
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects an unsigned ("alg: none") token that only carries a payload, no real signature', async () => {
+    const unsigned = jwt.sign({ sub: 'user-123', roles: ['super_admin'] }, '', { algorithm: 'none' });
+    const res = await request(app).get('/admin-only').set('Authorization', `Bearer ${unsigned}`);
+    expect(res.status).toBe(401);
   });
 });
