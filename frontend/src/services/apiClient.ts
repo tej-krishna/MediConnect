@@ -90,10 +90,42 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<{
   }
 }
 
+async function rawDownload(path: string): Promise<{ blob: Blob; filename: string | null }> {
+  const headers: Record<string, string> = {};
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+  const res = await fetch(`${API_BASE_URL}${path}`, { method: 'GET', headers, credentials: 'include' });
+
+  if (!res.ok) {
+    const json = (await res.json().catch(() => null)) as ApiResponse<never> | null;
+    const message = json && !json.success ? json.error.message : `Request failed with status ${res.status}`;
+    const code = json && !json.success ? json.error.code : 'UNKNOWN_ERROR';
+    throw new ApiError(res.status, code, message);
+  }
+
+  const disposition = res.headers.get('Content-Disposition');
+  const match = disposition ? /filename="?([^"]+)"?/.exec(disposition) : null;
+  return { blob: await res.blob(), filename: match ? decodeURIComponent(match[1]) : null };
+}
+
+async function downloadFile(path: string): Promise<{ blob: Blob; filename: string | null }> {
+  try {
+    return await rawDownload(path);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      const refreshed = await tryRefresh();
+      if (refreshed) return rawDownload(path);
+    }
+    throw error;
+  }
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path, { method: 'GET' }),
   post: <T>(path: string, body?: unknown) => request<T>(path, { method: 'POST', body }),
   patch: <T>(path: string, body?: unknown) => request<T>(path, { method: 'PATCH', body }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
   postForm: <T>(path: string, formData: FormData) => request<T>(path, { method: 'POST', body: formData, isFormData: true }),
+  downloadFile,
 };

@@ -17,6 +17,11 @@ import { MedicineSearchPage } from './pages/MedicineSearchPage';
 import { MedicineAlternativesPage } from './pages/MedicineAlternativesPage';
 import { OrderMedicinePage } from './pages/OrderMedicinePage';
 import { MyOrdersPage } from './pages/MyOrdersPage';
+import { DiagnosticTestSearchPage } from './pages/DiagnosticTestSearchPage';
+import { OrderTestPage } from './pages/OrderTestPage';
+import { MyDiagnosticOrdersPage } from './pages/MyDiagnosticOrdersPage';
+import { HealthCampSearchPage } from './pages/HealthCampSearchPage';
+import { MyCampRegistrationsPage } from './pages/MyCampRegistrationsPage';
 import { ContactPage } from './pages/ContactPage';
 import { HelpPage } from './pages/HelpPage';
 import { PrivacyPage } from './pages/PrivacyPage';
@@ -38,6 +43,8 @@ function App() {
             <Route path="providers/:id" element={<ProviderDetailPage />} />
             <Route path="medicines" element={<MedicineSearchPage />} />
             <Route path="medicines/:id/alternatives" element={<MedicineAlternativesPage />} />
+            <Route path="diagnostic-tests" element={<DiagnosticTestSearchPage />} />
+            <Route path="health-camps" element={<HealthCampSearchPage />} />
             <Route path="contact" element={<ContactPage />} />
             <Route path="help" element={<HelpPage />} />
             <Route path="privacy" element={<PrivacyPage />} />
@@ -49,6 +56,9 @@ function App() {
               <Route path="appointments" element={<MyAppointmentsPage />} />
               <Route path="medicines/:id/order" element={<OrderMedicinePage />} />
               <Route path="orders" element={<MyOrdersPage />} />
+              <Route path="diagnostic-tests/:id/order" element={<OrderTestPage />} />
+              <Route path="diagnostic-orders" element={<MyDiagnosticOrdersPage />} />
+              <Route path="my-camps" element={<MyCampRegistrationsPage />} />
             </Route>
             <Route path="*" element={<NotFoundPage />} />
           </Route>

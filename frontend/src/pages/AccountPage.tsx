@@ -41,10 +41,21 @@ export function AccountPage() {
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>
-        <h3>Appointments</h3>
-        <Link to="/appointments" className="btn btn-secondary">
-          View my appointments
-        </Link>
+        <h3>My activity</h3>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Link to="/appointments" className="btn btn-secondary">
+            Appointments
+          </Link>
+          <Link to="/orders" className="btn btn-secondary">
+            Medicine orders
+          </Link>
+          <Link to="/diagnostic-orders" className="btn btn-secondary">
+            Diagnostic tests
+          </Link>
+          <Link to="/my-camps" className="btn btn-secondary">
+            Health camps
+          </Link>
+        </div>
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>

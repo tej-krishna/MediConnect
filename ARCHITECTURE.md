@@ -294,3 +294,33 @@ built versus planned. Entries are added here at the end of each phase, not in ad
   `$geoNear` race — already solved by `connectDatabase()` awaiting `model.init()` for every model, so
   `MedicineItem`'s `{name: 'text', genericName: 'text'}` index is just as covered as the `2dsphere`
   one without any extra work this phase.
+
+### Phase 7 — Diagnostics and mobile health camps
+
+- **A diagnostic order is its own flow, not a repurposed `Slot`/`Appointment`.** Doctor/clinic
+  booking is "pick an existing time slot the provider published." A diagnostic order is closer to
+  the pharmacy flow: the patient picks *tests* and a *collection method*, and the lab then confirms
+  a time — the request comes from the patient side first, not from provider-published availability.
+  Forcing it through the Phase 5 slot system would mean either pharmacies-style labs pre-publishing
+  slots for every possible test combination (impractical) or awkwardly bolting collection-method and
+  home-address fields onto `Slot`, which exists for a conceptually different thing. Two small,
+  purpose-built models were less code and clearer than stretching one general one to cover both.
+- **One `HealthCamp` model serves two different provider types** (`mobile_van_operator` and
+  `ngo_coordinator`) rather than one model per type. The brief describes them as the same kind of
+  event — a scheduled, capacity-limited public health activity at a location — differing only in who
+  runs it, which `CAMP_PROVIDER_TYPES` in `healthCamp.service.ts` already captures as an authorization
+  check, not a schema difference. If the two ever need genuinely different fields later, that's a
+  schema migration at that point, not a redesign now for a difference that doesn't exist yet.
+- **Report/collector assignment reuses `isProviderMember()` with no finer-grained role**, same as
+  every other lab/pharmacy/provider action. A real system would likely want a "radiologist" or "lab
+  technician" credential distinct from "works at this lab," matching the brief's mention of
+  radiologist-specific finalization — but the Phase 5 staff model has no per-member role/specialty
+  field to check yet, and inventing one for this phase alone (rather than as a real cross-cutting
+  staff-permissions feature) would be the kind of half-measure the brief explicitly warns against.
+  Documented as a known gap rather than silently narrowed.
+- **The "schedule" action takes an explicit `confirmedDateTime`, never defaults silently.** An
+  earlier draft of the frontend defaulted it to "now" when the lab clicked Schedule without picking a
+  time — caught via a lint warning on the stray `new Date()` call, not a design review, which is
+  itself worth noting: a purity/impure-call lint rule flagged a real product correctness issue, not
+  just a style nit. Fixed by giving the lab a `datetime-local` input per order, falling back to the
+  patient's own originally-requested time (not "now") when left blank.

@@ -6,8 +6,8 @@ A task is marked `[x]` only after its code, tests, and manual verification all p
 `ARCHITECTURE.md` for the decisions behind these choices and `README.md` for how to run each
 package.
 
-**Current phase: Phase 7 — Diagnostics, Radiology and Mobile Medical Vans**
-**Next task: 7.1 — Diagnostic test catalogue with transparent prices; lab appointment booking**
+**Current phase: Phase 8 — Emergency Support and Smart Care Routing**
+**Next task: 8.1 — Emergency-access UI: nearest verified providers, ambulance contacts, one-tap call/directions**
 
 ---
 
@@ -112,9 +112,16 @@ package.
 
 ## Phase 7 — Diagnostics, Radiology and Mobile Medical Vans
 
-- [ ] 7.1 — Diagnostic test catalogue with transparent prices; lab appointment booking.
-- [ ] 7.2 — Home sample collection requests, staff assignment, status tracking; secure report upload/access.
-- [ ] 7.3 — Mobile medical van schedules and village health-camp registration.
+- [x] 7.1 — Diagnostic test catalogue (`src/modules/diagnostics/diagnosticTest.model.ts`/`.service.ts`) scoped per lab, same pattern as pharmacy inventory (Phase 6): name, category, sample type, price, turnaround time, home-collection flag, text-indexed public search restricted to actively-verified `diagnostic_lab` providers. Lab booking is its own `DiagnosticOrder` flow (`diagnosticOrder.model.ts`/`.service.ts`), not the generic Slot/Appointment system — a deliberate choice since a test order needs a collection method and (for home collection) an address, not just a time slot; `POST /diagnostic-orders` validates every requested test belongs to the chosen lab and is active, and rejects home collection for any test that doesn't support it.
+- [x] 7.2 — Status machine `requested → scheduled → sample_collected → processing → report_ready`, with `cancelled` only reachable from `requested`/`scheduled` (once a sample is physically collected, cancelling no longer makes sense — matches the Phase 6 pharmacy-order reasoning). "Scheduling" an order lets the lab assign a collector, validated as an actual member of that lab (`isProviderMember`) so a report can never be attributed to someone with no relationship to the lab. Reports upload through the same private `StorageAdapter`/authorized-download pattern as provider verification documents (Phase 3) and pharmacy prescriptions (Phase 6) — never a static file path; only the patient or a lab member can download.
+- [x] 7.3 — `HealthCamp`/`HealthCampRegistration` (`healthCamp.model.ts`/`.service.ts`) for both `mobile_van_operator` and `ngo_coordinator` providers — the brief treats mobile-van and NGO camps as the same kind of event, so one model serves both rather than duplicating it. Registration reuses the exact Phase 5/6 transaction pattern: atomically reserve one unit of `registeredCount` against `capacity` and create the registration in the same transaction, with a partial unique index preventing a double-registration while still allowing re-registration after a cancellation. Public search supports both geo radius (`$geoNear`, same as Phase 4 provider discovery) and a city-name fallback.
+
+**Evidence:**
+- Backend: `npm run typecheck`, `npm run build`, `npm run lint` all pass; `npx vitest run` → 12 files / 49 tests passing. New: `tests/diagnostics.test.ts` covering catalogue CRUD and non-member-forbidden, the full order lifecycle including a blocked cancel once a sample is collected and unauthorized report upload/download attempts rejected, home-collection correctly rejected for a test that doesn't support it, an invalid test ID rejected, camp scheduling/search/registration with duplicate-registration blocked and capacity correctly restored on cancellation, and — the by-now-standard pattern — **5 simulated patients concurrently registering for a capacity-1 camp via `Promise.all`, exactly 1 succeeding and the camp's final `registeredCount` verified to be exactly 1**.
+- Full manual browser verification end to end, covering both provider types introduced this phase: a diagnostic lab approved → test added → booked by a patient with home collection → scheduled (verified both the datetime picker and its fallback to the patient's originally-requested time work) → marked collected → processing → report uploaded (via the already-tested API, since native OS file pickers aren't browser-automatable here) → patient downloaded the report (confirmed via a `200 OK` on the actual network request, not just UI state). Separately, a mobile van operator approved → scheduled a 2-capacity camp → a patient found and registered for it (capacity visibly dropped to "1 spot left" in real time) → cancelled → capacity visibly restored to "2 spots left".
+- **A real UX gap was caught and fixed during this verification**, flagged first by a `react(purity)` lint warning on a `new Date()` call: the "Schedule" action was defaulting an order's confirmed date/time to "right now" rather than letting the lab pick one. Added a `datetime-local` input per booking row (falling back to the patient's originally-preferred time if the lab doesn't override it) — lint caught a real product gap, not just a style nit.
+
+**Known issues / deferred:** No fine-grained "radiologist" sub-role distinct from general lab staff — any active staff member of a lab can upload/finalize a report, gated by the same `isProviderMember()` check used everywhere else, not a specialty-specific credential check (the Phase 5 staff model doesn't yet have per-member role granularity; adding it would be a cross-cutting change, not scoped to this phase). "Mobile medical van schedules and **service-area** management" — service-area as a shape/polygon isn't modeled, only a per-camp location/description and an optional point for radius search; a true service-area boundary wasn't required by any concrete feature in this phase and can be added later without a schema change to existing camps.
 
 ## Phase 8 — Emergency Support and Smart Care Routing
 

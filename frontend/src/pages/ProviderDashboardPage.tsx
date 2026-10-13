@@ -20,19 +20,40 @@ import {
   listPharmacyOrders,
   transitionOrder,
 } from '../services/pharmacyService';
+import {
+  createTest,
+  listLabTests,
+  listLabOrders,
+  transitionDiagnosticOrder,
+  uploadReport,
+  createCamp,
+  listProviderCamps,
+  cancelCamp,
+} from '../services/diagnosticsService';
 import { ApiError } from '../services/apiClient';
 import type { OwnerProviderApplication } from '../types/provider';
 import type { Slot, Appointment } from '../types/scheduling';
 import type { Medicine, Order, OrderStatus } from '../types/pharmacy';
+import type { DiagnosticTest, DiagnosticOrder, DiagnosticOrderStatus, HealthCamp } from '../types/diagnostics';
 import './ProviderDashboardPage.css';
 
-const SCHEDULING_TYPES = new Set(['doctor', 'hospital', 'clinic', 'diagnostic_lab']);
+// diagnostic_lab deliberately excluded: labs book through their own DiagnosticOrder flow
+// (collection method + preferred time tied to specific tests), not the generic Slot/Appointment
+// system doctors/hospitals/clinics use.
+const SCHEDULING_TYPES = new Set(['doctor', 'hospital', 'clinic']);
+const CAMP_TYPES = new Set(['mobile_van_operator', 'ngo_coordinator']);
 
 const NEXT_ORDER_ACTION: Partial<Record<OrderStatus, { action: string; label: string }>> = {
   placed: { action: 'confirm', label: 'Confirm' },
   confirmed: { action: 'start_preparing', label: 'Start preparing' },
   preparing: { action: 'out_for_delivery', label: 'Out for delivery' },
   out_for_delivery: { action: 'deliver', label: 'Mark delivered' },
+};
+
+const NEXT_DIAGNOSTIC_ACTION: Partial<Record<DiagnosticOrderStatus, { action: string; label: string }>> = {
+  requested: { action: 'schedule', label: 'Schedule' },
+  scheduled: { action: 'mark_collected', label: 'Mark sample collected' },
+  sample_collected: { action: 'start_processing', label: 'Start processing' },
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -81,6 +102,26 @@ export function ProviderDashboardPage() {
   const [creatingMedicine, setCreatingMedicine] = useState(false);
   const [pharmacyOrders, setPharmacyOrders] = useState<Order[]>([]);
 
+  const [tests, setTests] = useState<DiagnosticTest[]>([]);
+  const [testName, setTestName] = useState('');
+  const [testCategory, setTestCategory] = useState('');
+  const [testSampleType, setTestSampleType] = useState('');
+  const [testPrice, setTestPrice] = useState('');
+  const [testTurnaround, setTestTurnaround] = useState('24');
+  const [testHomeCollection, setTestHomeCollection] = useState(false);
+  const [creatingTest, setCreatingTest] = useState(false);
+  const [labOrders, setLabOrders] = useState<DiagnosticOrder[]>([]);
+  const [scheduleDateTimes, setScheduleDateTimes] = useState<Record<string, string>>({});
+
+  const [camps, setCamps] = useState<HealthCamp[]>([]);
+  const [campTitle, setCampTitle] = useState('');
+  const [campLocation, setCampLocation] = useState('');
+  const [campDate, setCampDate] = useState('');
+  const [campStart, setCampStart] = useState('');
+  const [campEnd, setCampEnd] = useState('');
+  const [campCapacity, setCampCapacity] = useState('20');
+  const [creatingCamp, setCreatingCamp] = useState(false);
+
   const reload = useCallback(async () => {
     if (!id) return;
     try {
@@ -100,6 +141,14 @@ export function ProviderDashboardPage() {
         const [medicineList, orderList] = await Promise.all([listPharmacyMedicines(id), listPharmacyOrders(id)]);
         setMedicines(medicineList);
         setPharmacyOrders(orderList);
+      }
+      if (app.status === 'approved' && app.providerType === 'diagnostic_lab') {
+        const [testList, orderList] = await Promise.all([listLabTests(id), listLabOrders(id)]);
+        setTests(testList);
+        setLabOrders(orderList);
+      }
+      if (app.status === 'approved' && CAMP_TYPES.has(app.providerType)) {
+        setCamps(await listProviderCamps(id));
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not load this application.');
@@ -241,6 +290,103 @@ export function ProviderDashboardPage() {
       await reload();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not update order status.');
+    }
+  }
+
+  async function handleCreateTest(e: FormEvent) {
+    e.preventDefault();
+    if (!id) return;
+    setCreatingTest(true);
+    setError(null);
+    try {
+      await createTest(id, {
+        name: testName,
+        category: testCategory,
+        sampleType: testSampleType,
+        price: Number(testPrice) || 0,
+        turnaroundHours: Number(testTurnaround) || 24,
+        homeCollectionAvailable: testHomeCollection,
+      });
+      setTestName('');
+      setTestCategory('');
+      setTestSampleType('');
+      setTestPrice('');
+      setTestHomeCollection(false);
+      setMessage('Test added to catalogue.');
+      await reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not add test.');
+    } finally {
+      setCreatingTest(false);
+    }
+  }
+
+  async function handleDiagnosticAction(orderId: string, action: string, preferredDateTime?: string) {
+    setError(null);
+    try {
+      if (action === 'schedule') {
+        const chosen = scheduleDateTimes[orderId];
+        const confirmedDateTime = chosen ? new Date(chosen).toISOString() : preferredDateTime;
+        if (!confirmedDateTime) {
+          setError('Pick a date and time to confirm first.');
+          return;
+        }
+        await transitionDiagnosticOrder(orderId, { action, confirmedDateTime });
+      } else {
+        await transitionDiagnosticOrder(orderId, { action });
+      }
+      await reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not update this booking.');
+    }
+  }
+
+  async function handleReportUpload(orderId: string, reportFile: File | null) {
+    if (!reportFile) return;
+    setError(null);
+    try {
+      await uploadReport(orderId, reportFile);
+      setMessage('Report uploaded.');
+      await reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not upload the report.');
+    }
+  }
+
+  async function handleCreateCamp(e: FormEvent) {
+    e.preventDefault();
+    if (!id || !campDate || !campStart || !campEnd) return;
+    setCreatingCamp(true);
+    setError(null);
+    try {
+      await createCamp(id, {
+        title: campTitle,
+        locationDescription: campLocation,
+        scheduledDate: new Date(campDate).toISOString(),
+        startTime: campStart,
+        endTime: campEnd,
+        servicesOffered: [],
+        capacity: Number(campCapacity) || 1,
+      });
+      setCampTitle('');
+      setCampLocation('');
+      setMessage('Camp scheduled.');
+      await reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not schedule camp.');
+    } finally {
+      setCreatingCamp(false);
+    }
+  }
+
+  async function handleCancelCamp(campId: string) {
+    if (!id) return;
+    setError(null);
+    try {
+      await cancelCamp(id, campId);
+      await reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not cancel camp.');
     }
   }
 
@@ -551,6 +697,205 @@ export function ProviderDashboardPage() {
                 </table>
               </div>
             </>
+          )}
+
+          {application.providerType === 'diagnostic_lab' && (
+            <>
+              <div className="card">
+                <h3>Test catalogue</h3>
+                <form onSubmit={handleCreateTest} className="inline-form">
+                  <div className="form-field">
+                    <label htmlFor="testName">Name</label>
+                    <input id="testName" required value={testName} onChange={(e) => setTestName(e.target.value)} />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="testCategory">Category</label>
+                    <input id="testCategory" required placeholder="e.g. blood, imaging" value={testCategory} onChange={(e) => setTestCategory(e.target.value)} />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="testSampleType">Sample type</label>
+                    <input id="testSampleType" required placeholder="e.g. blood, none" value={testSampleType} onChange={(e) => setTestSampleType(e.target.value)} />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="testPrice">Price (₹)</label>
+                    <input id="testPrice" type="number" min={0} required style={{ width: 90 }} value={testPrice} onChange={(e) => setTestPrice(e.target.value)} />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="testTurnaround">Turnaround (hrs)</label>
+                    <input id="testTurnaround" type="number" min={1} style={{ width: 80 }} value={testTurnaround} onChange={(e) => setTestTurnaround(e.target.value)} />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="testHomeCollection">
+                      <input id="testHomeCollection" type="checkbox" checked={testHomeCollection} onChange={(e) => setTestHomeCollection(e.target.checked)} style={{ marginRight: 6 }} />
+                      Home collection available
+                    </label>
+                  </div>
+                  <button type="submit" className="btn btn-secondary" disabled={creatingTest}>
+                    {creatingTest ? 'Adding…' : 'Add test'}
+                  </button>
+                </form>
+
+                <table className="simple-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Price</th>
+                      <th>Home collection</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tests.map((test) => (
+                      <tr key={test.id}>
+                        <td>{test.name}</td>
+                        <td>₹{test.price}</td>
+                        <td>{test.homeCollectionAvailable ? 'Yes' : 'No'}</td>
+                      </tr>
+                    ))}
+                    {tests.length === 0 && (
+                      <tr>
+                        <td colSpan={3} className="text-muted">
+                          No tests in catalogue yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="card">
+                <h3>Test bookings</h3>
+                <table className="simple-table">
+                  <thead>
+                    <tr>
+                      <th>Tests</th>
+                      <th>Method</th>
+                      <th>Status</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {labOrders.map((order) => {
+                      const next = NEXT_DIAGNOSTIC_ACTION[order.status];
+                      return (
+                        <tr key={order.id}>
+                          <td>{order.tests.map((t) => t.name).join(', ')}</td>
+                          <td>{order.collectionMethod === 'home_collection' ? 'Home' : 'At lab'}</td>
+                          <td>{order.status.replace(/_/g, ' ')}</td>
+                          <td>
+                            {next && next.action === 'schedule' && (
+                              <input
+                                type="datetime-local"
+                                style={{ marginRight: 8 }}
+                                value={scheduleDateTimes[order.id] ?? ''}
+                                onChange={(e) =>
+                                  setScheduleDateTimes((prev) => ({ ...prev, [order.id]: e.target.value }))
+                                }
+                              />
+                            )}
+                            {next && (
+                              <button
+                                className="btn btn-secondary"
+                                onClick={() => handleDiagnosticAction(order.id, next.action, order.preferredDateTime)}
+                              >
+                                {next.label}
+                              </button>
+                            )}
+                            {order.status === 'processing' && (
+                              <input
+                                type="file"
+                                accept="application/pdf,image/jpeg,image/png"
+                                style={{ marginLeft: 8, maxWidth: 160, display: 'inline-block' }}
+                                onChange={(e) => handleReportUpload(order.id, e.target.files?.[0] ?? null)}
+                              />
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {labOrders.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="text-muted">
+                          No bookings yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+
+          {CAMP_TYPES.has(application.providerType) && (
+            <div className="card">
+              <h3>Health camps</h3>
+              <form onSubmit={handleCreateCamp} className="inline-form">
+                <div className="form-field">
+                  <label htmlFor="campTitle">Title</label>
+                  <input id="campTitle" required value={campTitle} onChange={(e) => setCampTitle(e.target.value)} />
+                </div>
+                <div className="form-field">
+                  <label htmlFor="campLocation">Location</label>
+                  <input id="campLocation" required placeholder="e.g. Village Square, Wagholi" value={campLocation} onChange={(e) => setCampLocation(e.target.value)} />
+                </div>
+                <div className="form-field">
+                  <label htmlFor="campDate">Date</label>
+                  <input id="campDate" type="date" required value={campDate} onChange={(e) => setCampDate(e.target.value)} />
+                </div>
+                <div className="form-field">
+                  <label htmlFor="campStart">Start</label>
+                  <input id="campStart" type="time" required value={campStart} onChange={(e) => setCampStart(e.target.value)} />
+                </div>
+                <div className="form-field">
+                  <label htmlFor="campEnd">End</label>
+                  <input id="campEnd" type="time" required value={campEnd} onChange={(e) => setCampEnd(e.target.value)} />
+                </div>
+                <div className="form-field">
+                  <label htmlFor="campCapacity">Capacity</label>
+                  <input id="campCapacity" type="number" min={1} style={{ width: 80 }} value={campCapacity} onChange={(e) => setCampCapacity(e.target.value)} />
+                </div>
+                <button type="submit" className="btn btn-secondary" disabled={creatingCamp}>
+                  {creatingCamp ? 'Scheduling…' : 'Schedule camp'}
+                </button>
+              </form>
+
+              <table className="simple-table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Date</th>
+                    <th>Registered</th>
+                    <th>Status</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {camps.map((camp) => (
+                    <tr key={camp.id}>
+                      <td>{camp.title}</td>
+                      <td>{new Date(camp.scheduledDate).toLocaleDateString()}</td>
+                      <td>
+                        {camp.registeredCount}/{camp.capacity}
+                      </td>
+                      <td>{camp.status}</td>
+                      <td>
+                        {camp.status === 'scheduled' && (
+                          <button className="btn btn-secondary" onClick={() => handleCancelCamp(camp.id)}>
+                            Cancel
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {camps.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="text-muted">
+                        No camps scheduled yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
         </>
       )}
