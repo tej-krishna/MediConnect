@@ -55,6 +55,12 @@ export function AccountPage() {
           <Link to="/my-camps" className="btn btn-secondary">
             Health camps
           </Link>
+          <Link to="/medical-records" className="btn btn-secondary">
+            Medical record
+          </Link>
+          <Link to="/caregiver-invites" className="btn btn-secondary">
+            Caregiver invites
+          </Link>
         </div>
       </div>
 

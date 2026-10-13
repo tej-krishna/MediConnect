@@ -355,3 +355,36 @@ built versus planned. Entries are added here at the end of each phase, not in ad
   `tel:` link (real phone call) or a link into the same discovery/booking flows the rest of the site
   already uses — there is no "ambulance is 4 minutes away" style UI, because the system has no actual
   dispatch integration and would be lying if it displayed one.
+
+### Phase 9 — Medical records and caregiver access
+
+- **One route shape, one access function, for both self and caregiver access.** Every endpoint in
+  this module is `/medical-records/:patientId/...`, where `:patientId` is either the literal string
+  `"me"` or someone else's user id, and every single one of them calls the same `assertAccess()`
+  before doing anything. There is no separate "my records" vs "patient records" code path to keep in
+  sync — self-access and caregiver-access are the same code with a different outcome of one function,
+  which is exactly the property you want for an authorization boundary this sensitive: one place to
+  get right, not several copies that can drift apart.
+- **Medical records are the one place in this app where `super_admin` has no special access.**
+  Everywhere else — provider verification, order fulfillment, emergency guidance — a platform admin
+  reviewing or moderating the system is core to how that feature works. Health data is different: an
+  admin being able to browse patient records "because they're an admin" isn't a feature, it's a
+  liability, and nothing in this module checks `req.user.roles` at all. The only two ways in are
+  "you're the patient" and "the patient explicitly granted you a scope."
+- **Expiry and revocation are both checked at read time, not enforced by a background job.** A
+  `CaregiverAccess` grant with a past `expiresAt` is treated as inactive the instant the next request
+  checks it (same `isActivelyVerified()`-style computed check as Phase 3 provider verification and
+  Phase 4 discovery), and a revoked grant simply fails that same check from then on. There's no
+  scheduled task sweeping through expired grants — the check is cheap enough to do on every request,
+  which is also strictly more correct than a periodic sweep that could leave a technically-expired
+  grant working for up to one sweep interval.
+- **Deletion is patient-only, even for a caregiver who can edit everything else.** `manage_profile`
+  grants the ability to add documents and visits and edit the profile — it does not grant deletion.
+  This is a deliberate asymmetry: a caregiver helping manage someone's records is a reasonable thing
+  to support, but giving a third party the ability to permanently remove another person's health
+  records is a different, much higher-risk capability that the brief's "appropriate" deletion controls
+  shouldn't be read as implying.
+- **The audit log only records caregiver access, not the patient's own.** A patient viewing their own
+  profile isn't a privacy-relevant event in the way a caregiver's access is — logging it would just be
+  noise that makes the real signal (who *else* looked at this) harder to find. `logAccess()` is a
+  no-op whenever `patientId === accessedBy`.

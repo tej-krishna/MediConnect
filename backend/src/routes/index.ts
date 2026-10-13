@@ -6,6 +6,7 @@ import { schedulingRouter } from '../modules/scheduling/scheduling.routes';
 import { pharmacyRouter } from '../modules/pharmacy/pharmacy.routes';
 import { diagnosticsRouter } from '../modules/diagnostics/diagnostics.routes';
 import { emergencyRouter } from '../modules/emergency/emergency.routes';
+import { medicalRecordsRouter } from '../modules/medicalRecords/medicalRecords.routes';
 
 export const apiRouter = Router();
 
@@ -16,3 +17,4 @@ apiRouter.use(schedulingRouter);
 apiRouter.use(pharmacyRouter);
 apiRouter.use(diagnosticsRouter);
 apiRouter.use(emergencyRouter);
+apiRouter.use(medicalRecordsRouter);

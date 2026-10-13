@@ -6,8 +6,8 @@ A task is marked `[x]` only after its code, tests, and manual verification all p
 `ARCHITECTURE.md` for the decisions behind these choices and `README.md` for how to run each
 package.
 
-**Current phase: Phase 9 — Medical Records and Caregiver Access**
-**Next task: 9.1 — Patient medical history, allergies, medications, prescriptions, reports, visit history**
+**Current phase: Phase 10 — Additional Healthcare Services**
+**Next task: 10.1 — Medical equipment rental/purchase; home nursing/physiotherapy booking**
 
 ---
 
@@ -137,9 +137,15 @@ package.
 
 ## Phase 9 — Medical Records and Caregiver Access
 
-- [ ] 9.1 — Patient medical history, allergies, medications, prescriptions, reports, visit history.
-- [ ] 9.2 — Caregiver invitations with explicit consent, scoped access, expiry and revocation.
-- [ ] 9.3 — Audit logs for sensitive-record access; data correction/deletion workflows.
+- [x] 9.1 — `medicalRecords` module: `MedicalProfile` (blood type, allergies, chronic conditions, current medications — one per patient), `MedicalDocument` (patient-uploaded prescriptions/reports/discharge summaries/other, through the same private `StorageAdapter` pattern as every other sensitive-document flow in the app), and `VisitRecord` (manually logged visit history). All three are reached through one consistent route shape — `/medical-records/:patientId/...` where `:patientId` is the literal `"me"` or another user's id — rather than separate self/caregiver endpoints.
+- [x] 9.2 — `CaregiverAccess` grants: a patient invites an existing registered user (same "must already have an account" pattern as Phase 5 provider staff) by email with a chosen subset of four scopes (`view_profile`, `view_documents`, `view_visits`, `manage_profile`) and an optional expiry; the caregiver must explicitly accept before any access exists. `assertAccess()` (`medicalRecords.access.ts`) is the **one** authorization gate every read/write in this module goes through: self always passes; anyone else needs an `active`, non-expired grant with the specific scope the action requires — computed at read time the same way provider verification expiry is (Phase 3), not via a background job. The patient can revoke at any point; revocation and expiry both take effect immediately on the next request, not eventually.
+- [x] 9.3 — `RecordAccessLog` records every caregiver (never the patient's own) read of profile/documents/visits, viewable only by the patient themselves — a caregiver can never see who else has accessed the same records. Deletion of documents/visits is patient-only, full stop: not even a caregiver holding `manage_profile` (which permits adding records) can delete one — matching "appropriate" deletion control without building an approval workflow nobody asked for. **No one else — not even `super_admin` — can read medical records through this module**, a deliberately stricter boundary than the rest of the app, where admins routinely review provider/order data.
+
+**Evidence:**
+- Backend: `npm run typecheck`, `npm run build`, `npm run lint` all pass; `npx vitest run` → 14 files / 58 tests passing. New: `tests/medicalRecords.test.ts` covering full patient self-access (profile/documents/visits CRUD), a stranger with no grant blocked from both reading and writing, the complete caregiver lifecycle (invite requires an existing account, self-invite rejected, duplicate invite rejected, no access before acceptance, exactly the granted scopes work and nothing else does, the patient's audit log shows the caregiver's reads while the caregiver can never see that log, revoke immediately removes access), a grant whose `status` is still `"active"` in the database but whose `expiresAt` has passed being correctly treated as inactive, declining an invite granting no access, and a caregiver with `manage_profile` still being unable to delete a document.
+- Full manual browser verification of the complete real-world flow: a patient filled in and saved their profile (blood type, allergies, medications — confirmed via direct DOM inspection that the real saved values render, not placeholders), registered a separate caregiver account, invited them with exactly `view_profile` + `view_visits` (deliberately withholding `view_documents` and `manage_profile`), the caregiver saw and accepted the invite, then viewed the patient's record and got **exactly** what was granted — profile and visit history visible, documents explicitly blocked with "You don't have permission to view documents" — and the patient's own audit log showed the caregiver's two reads. Revoking access was confirmed immediately in the grants list (`active` → `revoked`).
+
+**Known issues / deferred:** No automatic population of visit history from completed Phase 5 appointments or Phase 6/7 orders — visits are patient/caregiver-logged manually for now; wiring automatic visit-record creation into appointment/order completion is a reasonable future enhancement that would touch those modules, not scoped into this phase to avoid coupling them to medical-records internals without a specific need driving it yet.
 
 ## Phase 10 — Additional Healthcare Services
 
