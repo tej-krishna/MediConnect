@@ -26,6 +26,15 @@ import { EmergencyPage } from './pages/EmergencyPage';
 import { AdminEmergencyGuidesPage } from './pages/AdminEmergencyGuidesPage';
 import { MedicalRecordPage } from './pages/MedicalRecordPage';
 import { CaregiverInvitesPage } from './pages/CaregiverInvitesPage';
+import { HomeCareSearchPage } from './pages/HomeCareSearchPage';
+import { BookCareOfferingPage } from './pages/BookCareOfferingPage';
+import { MyCareRequestsPage } from './pages/MyCareRequestsPage';
+import { BecomeDeliveryPartnerPage } from './pages/BecomeDeliveryPartnerPage';
+import { MyDeliveriesPage } from './pages/MyDeliveriesPage';
+import { AdminDeliveryPartnersPage } from './pages/AdminDeliveryPartnersPage';
+import { SupportPage } from './pages/SupportPage';
+import { SupportTicketDetailPage } from './pages/SupportTicketDetailPage';
+import { AdminSupportTicketsPage } from './pages/AdminSupportTicketsPage';
 import { ContactPage } from './pages/ContactPage';
 import { HelpPage } from './pages/HelpPage';
 import { PrivacyPage } from './pages/PrivacyPage';
@@ -49,6 +58,7 @@ function App() {
             <Route path="medicines/:id/alternatives" element={<MedicineAlternativesPage />} />
             <Route path="diagnostic-tests" element={<DiagnosticTestSearchPage />} />
             <Route path="health-camps" element={<HealthCampSearchPage />} />
+            <Route path="home-care" element={<HomeCareSearchPage />} />
             <Route path="emergency" element={<EmergencyPage />} />
             <Route path="contact" element={<ContactPage />} />
             <Route path="help" element={<HelpPage />} />
@@ -68,6 +78,14 @@ function App() {
               <Route path="medical-records" element={<MedicalRecordPage />} />
               <Route path="medical-records/:patientId" element={<MedicalRecordPage />} />
               <Route path="caregiver-invites" element={<CaregiverInvitesPage />} />
+              <Route path="home-care/:id/book" element={<BookCareOfferingPage />} />
+              <Route path="my-care-requests" element={<MyCareRequestsPage />} />
+              <Route path="become-delivery-partner" element={<BecomeDeliveryPartnerPage />} />
+              <Route path="my-deliveries" element={<MyDeliveriesPage />} />
+              <Route path="admin/delivery-partners" element={<AdminDeliveryPartnersPage />} />
+              <Route path="support" element={<SupportPage />} />
+              <Route path="support/:id" element={<SupportTicketDetailPage />} />
+              <Route path="admin/support-tickets" element={<AdminSupportTicketsPage />} />
             </Route>
             <Route path="*" element={<NotFoundPage />} />
           </Route>

@@ -40,6 +40,7 @@ function toOrderView(order: OrderDoc) {
     deliveryAddress: order.deliveryAddress,
     status: order.status,
     statusHistory: order.statusHistory,
+    assignedDeliveryPartnerId: order.assignedDeliveryPartnerId?.toString() ?? null,
     createdAt: order.createdAt,
   };
 }
@@ -101,6 +102,11 @@ export const transitionOrderHandler = asyncHandler(async (req, res) => {
   sendSuccess(res, { order: toOrderView(order) });
 });
 
+export const assignDeliveryPartnerHandler = asyncHandler(async (req, res) => {
+  const order = await orderService.assignDeliveryPartner(req.params.id as string, req.user!.id, req.body);
+  sendSuccess(res, { order: toOrderView(order) });
+});
+
 export const getOrderHandler = asyncHandler(async (req, res) => {
   const order = await orderService.getOrder(req.params.id as string, req.user!);
   sendSuccess(res, { order: toOrderView(order) });
@@ -108,6 +114,11 @@ export const getOrderHandler = asyncHandler(async (req, res) => {
 
 export const listMyOrdersHandler = asyncHandler(async (req, res) => {
   const { items, meta } = await orderService.listMyOrders(req.user!.id, req.query as Record<string, unknown>);
+  sendSuccess(res, { orders: items.map(toOrderView) }, 200, meta);
+});
+
+export const listMyDeliveriesHandler = asyncHandler(async (req, res) => {
+  const { items, meta } = await orderService.listMyDeliveries(req.user!.id, req.query as Record<string, unknown>);
   sendSuccess(res, { orders: items.map(toOrderView) }, 200, meta);
 });
 

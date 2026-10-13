@@ -30,6 +30,9 @@ export function MainLayout() {
             <NavLink to="/health-camps" className="site-nav__link">
               Camps
             </NavLink>
+            <NavLink to="/home-care" className="site-nav__link">
+              Home Care
+            </NavLink>
             {user ? (
               <>
                 <NavLink to="/account" className="site-nav__link">
@@ -62,6 +65,7 @@ export function MainLayout() {
           <p className="text-muted">© {CURRENT_YEAR} MediConnect. Not a substitute for emergency medical care.</p>
           <nav className="site-footer__links">
             <Link to="/contact">Contact</Link>
+            <Link to="/support">Support</Link>
             <Link to="/help">Help</Link>
             <Link to="/privacy">Privacy</Link>
             <Link to="/terms">Terms</Link>

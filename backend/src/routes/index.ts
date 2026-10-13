@@ -7,6 +7,9 @@ import { pharmacyRouter } from '../modules/pharmacy/pharmacy.routes';
 import { diagnosticsRouter } from '../modules/diagnostics/diagnostics.routes';
 import { emergencyRouter } from '../modules/emergency/emergency.routes';
 import { medicalRecordsRouter } from '../modules/medicalRecords/medicalRecords.routes';
+import { homecareRouter } from '../modules/homecare/homecare.routes';
+import { deliveryRouter } from '../modules/delivery/delivery.routes';
+import { supportRouter } from '../modules/support/support.routes';
 
 export const apiRouter = Router();
 
@@ -18,3 +21,6 @@ apiRouter.use(pharmacyRouter);
 apiRouter.use(diagnosticsRouter);
 apiRouter.use(emergencyRouter);
 apiRouter.use(medicalRecordsRouter);
+apiRouter.use(homecareRouter);
+apiRouter.use(deliveryRouter);
+apiRouter.use(supportRouter);

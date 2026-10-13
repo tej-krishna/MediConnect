@@ -59,6 +59,7 @@ const providerApplicationSchema = new Schema(
     },
     consultationFee: { type: Number, default: null, min: 0 },
     operatingHoursNote: { type: String, default: null, trim: true, maxlength: 200 },
+    isCurrentlyAvailable: { type: Boolean, default: null },
     documents: { type: [documentSchema], default: [] },
     status: { type: String, enum: APPLICATION_STATUSES, default: 'draft', index: true },
     statusHistory: { type: [statusHistoryEntrySchema], default: [] },
@@ -101,6 +102,7 @@ export interface ProviderApplicationAttrs {
   location?: { type: 'Point'; coordinates: [number, number] } | null;
   consultationFee: number | null;
   operatingHoursNote: string | null;
+  isCurrentlyAvailable: boolean | null;
   documents: Types.DocumentArray<ProviderDocumentSubdoc>;
   status: string;
   statusHistory: { status: string; changedAt: Date; changedBy: Types.ObjectId | null; reason: string | null }[];

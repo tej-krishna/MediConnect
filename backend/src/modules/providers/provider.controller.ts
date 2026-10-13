@@ -23,6 +23,7 @@ function toApplicationView(app: Awaited<ReturnType<typeof providerService.getApp
     location: toLatLng(app.location),
     consultationFee: app.consultationFee,
     operatingHoursNote: app.operatingHoursNote,
+    isCurrentlyAvailable: app.isCurrentlyAvailable,
     documents: app.documents.map((doc) => ({
       id: doc._id.toString(),
       documentType: doc.documentType,
@@ -63,6 +64,7 @@ function toPublicListing(app: {
   consultationFee: number | null;
   operatingHoursNote: string | null;
   verifiedAt: Date | null;
+  isCurrentlyAvailable?: boolean | null;
   distanceMeters?: number;
 }) {
   return {
@@ -75,6 +77,7 @@ function toPublicListing(app: {
     consultationFee: app.consultationFee,
     operatingHoursNote: app.operatingHoursNote,
     verifiedAt: app.verifiedAt,
+    isCurrentlyAvailable: app.isCurrentlyAvailable ?? null,
     ...(app.distanceMeters !== undefined ? { distanceMeters: Math.round(app.distanceMeters) } : {}),
   };
 }
@@ -140,6 +143,11 @@ export const downloadDocumentHandler = asyncHandler(async (req, res) => {
 
 export const updateListingInfoHandler = asyncHandler(async (req, res) => {
   const app = await providerService.updateListingInfo(req.params.id as string, req.user!.id, req.body);
+  sendSuccess(res, { application: toApplicationView(app) });
+});
+
+export const setAvailabilityHandler = asyncHandler(async (req, res) => {
+  const app = await providerService.setAvailability(req.params.id as string, req.user!.id, req.body.isCurrentlyAvailable);
   sendSuccess(res, { application: toApplicationView(app) });
 });
 

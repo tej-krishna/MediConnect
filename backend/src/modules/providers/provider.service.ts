@@ -197,6 +197,23 @@ export async function updateListingInfo(
   return app;
 }
 
+export async function setAvailability(
+  applicationId: string,
+  requesterId: string,
+  isCurrentlyAvailable: boolean,
+): Promise<ProviderApplicationDoc> {
+  const app = await loadApplicationOr404(applicationId);
+  if (app.userId.toString() !== requesterId) {
+    throw AppError.forbidden();
+  }
+  if (app.providerType !== 'ambulance_provider') {
+    throw AppError.badRequest('Only ambulance providers have an availability status');
+  }
+  app.isCurrentlyAvailable = isCurrentlyAvailable;
+  await app.save();
+  return app;
+}
+
 export async function listMine(userId: string, query: Record<string, unknown>) {
   const { page, limit, skip } = parsePagination(query);
   const [items, total] = await Promise.all([
@@ -330,6 +347,9 @@ export async function transition(
     app.verifiedAt = now;
     app.expiresAt = input.expiresAt ?? new Date(Date.now() + DEFAULT_VERIFICATION_VALIDITY_MS);
     app.rejectionReason = null;
+    if (app.providerType === 'ambulance_provider' && app.isCurrentlyAvailable === null) {
+      app.isCurrentlyAvailable = true;
+    }
     await grantProviderRole(app.userId, app.providerType);
   } else if (input.action === 'reject') {
     app.rejectionReason = input.reason;

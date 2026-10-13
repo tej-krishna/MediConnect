@@ -83,3 +83,13 @@ export async function listPharmacyOrders(pharmacyId: string): Promise<Order[]> {
   const { data } = await api.get<{ orders: Order[] }>(`/providers/applications/${pharmacyId}/orders`);
   return data.orders;
 }
+
+export async function listMyDeliveries(): Promise<Order[]> {
+  const { data } = await api.get<{ orders: Order[] }>('/orders/my-deliveries');
+  return data.orders;
+}
+
+export async function assignDeliveryPartner(orderId: string, deliveryPartnerUserId: string): Promise<Order> {
+  const { data } = await api.post<{ order: Order }>(`/orders/${orderId}/assign-delivery-partner`, { deliveryPartnerUserId });
+  return data.order;
+}

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { requireAuth } from '../../middleware/auth';
 import { validateBody, validateQuery } from '../../middleware/validate';
 import { documentUpload } from '../../middleware/upload';
+import { assignDeliveryPartnerSchema } from '../delivery/delivery.validation';
 import {
   createMedicineItemSchema,
   updateMedicineItemSchema,
@@ -19,8 +20,10 @@ import {
   createOrderHandler,
   uploadPrescriptionHandler,
   transitionOrderHandler,
+  assignDeliveryPartnerHandler,
   getOrderHandler,
   listMyOrdersHandler,
+  listMyDeliveriesHandler,
   listPharmacyOrdersHandler,
 } from './pharmacy.controller';
 
@@ -49,6 +52,12 @@ pharmacyRouter.get('/providers/applications/:id/orders', requireAuth, listPharma
 pharmacyRouter.use('/orders', requireAuth);
 pharmacyRouter.post('/orders', validateBody(createOrderSchema), createOrderHandler);
 pharmacyRouter.get('/orders/mine', listMyOrdersHandler);
+pharmacyRouter.get('/orders/my-deliveries', listMyDeliveriesHandler);
 pharmacyRouter.get('/orders/:id', getOrderHandler);
 pharmacyRouter.post('/orders/:id/prescription', documentUpload.single('prescription'), uploadPrescriptionHandler);
 pharmacyRouter.post('/orders/:id/transition', validateBody(orderTransitionSchema), transitionOrderHandler);
+pharmacyRouter.post(
+  '/orders/:id/assign-delivery-partner',
+  validateBody(assignDeliveryPartnerSchema),
+  assignDeliveryPartnerHandler,
+);

@@ -388,3 +388,66 @@ built versus planned. Entries are added here at the end of each phase, not in ad
   profile isn't a privacy-relevant event in the way a caregiver's access is — logging it would just be
   noise that makes the real signal (who *else* looked at this) harder to find. `logAccess()` is a
   no-op whenever `patientId === accessedBy`.
+
+### Phase 10 — Additional healthcare services
+
+- **Equipment and home-visit services are one offering model with a type discriminator, not two.**
+  `CareOffering.offeringType` is `equipment_rental` / `equipment_purchase` / `home_visit_service`, and
+  `availableQuantity` is `null` precisely for the service case. Equipment genuinely is finite
+  inventory that needs the Phase 5/6/7 atomic-reservation transaction; a home nursing visit isn't —
+  there's no stock to oversell, only a provider's own capacity to say yes or no to. Forcing a nurse
+  booking through the same check-then-decrement transaction as a wheelchair rental would be modeling a
+  race condition that doesn't exist, just to keep the code path uniform. The branch is in the service
+  layer (`if (offering.availableQuantity === null) { create directly } else { transaction }`), not two
+  separate models, because everything else about a request — status history, pricing snapshot,
+  delivery address — is identical regardless of which kind of offering it is.
+- **`equipment_provider` already covered home healthcare; no new provider type or role was added.**
+  The master prompt's own provider-role list names this type "Medical Equipment / Home Healthcare
+  Provider" — the role was always meant to span both, it just had no functionality built on it until
+  this phase. Recognizing that avoided inventing a parallel `home_care_provider` type that would have
+  fragmented an already-correct role boundary.
+- **The delivery-partner role follows the exact same "never self-granted" shape as provider
+  verification, deliberately, even though a delivery partner isn't a regulated business entity the way
+  a pharmacy or hospital is.** `delivery_partner` sat reserved but unused in `config/roles.ts` since
+  Phase 0. The alternative — letting a user instantly self-grant it, since gig-worker onboarding is
+  usually lighter-weight than business verification — was rejected because a delivery partner still
+  gets access to patient addresses and order details; "lower stakes than a hospital" isn't "no stakes."
+  `DeliveryPartnerProfile` is intentionally smaller than `ProviderApplication` (no document upload, no
+  registration-number dedup, no expiry) because the regulatory weight genuinely is lower, but the one
+  property that matters — a human admin decides, the code never does — was kept identical.
+- **A delivery-partner directory endpoint is open to any authenticated user, not just admins, because
+  the alternative is unusable.** A pharmacy needs to find someone to assign a delivery to; gating that
+  list behind `super_admin`/`support` would mean no pharmacy owner could ever actually use the
+  assignment feature without asking an admin to look someone up for them every time. The directory
+  deliberately exposes only what assignment needs (name, vehicle, city) — not phone number, not
+  application history, not status — so it's the minimum necessary, not the full admin view reused.
+- **`transitionOrder`'s `deliver` action now has two legitimate actors instead of one, and the code
+  says so explicitly rather than widening the existing `isPharmacyMember` check.** The assigned
+  delivery partner can confirm delivery; a pharmacy staff member still can too (useful for in-house
+  delivery or correcting a mistaken assignment); nobody else can, including a *different* delivery
+  partner who happens to also be approved. This was deliberately **not** implemented by adding
+  `delivery_partner` to the set of roles that can hit the endpoint — that would let any approved
+  delivery partner confirm *any* pharmacy's order, anywhere. The check is "are you the specific person
+  this specific order was assigned to," which is a per-resource relationship, not a role.
+- **NGO/health-camp coordination needed no new code.** Phase 7's `HealthCamp`/`HealthCampRegistration`
+  module already deliberately served both `mobile_van_operator` and `ngo_coordinator` provider types
+  under one model, specifically so this exact situation — the brief listing "NGO/health-camp
+  coordination" as if it were a separate feature — wouldn't require rebuilding something that already
+  existed. Recognizing prior work already satisfies a later requirement is as much a part of this
+  process as building something new; re-implementing it under a different module name would have been
+  needless duplication, not thoroughness.
+- **`refund_request` is a support-ticket category, not a refund-processing feature.** No payment
+  provider is integrated anywhere in this codebase yet (that's Phase 11's job), so there is no real
+  money-movement capability to attach a "process refund" button to. Building one now would mean either
+  faking a successful refund (actively dishonest to whoever reads that response) or building dead code
+  against an API that doesn't exist yet. Routing it to a human support queue is the honest version of
+  "handle refund requests" available at this point in the build — the ticket captures the request and
+  evidence; actual execution is deliberately left to Phase 11 once there's a real payment integration
+  to execute it against.
+- **The support-ticket action set is split the same way order/appointment cancellation already is:**
+  the person who filed it can message it, the people who handle it can change its state. This isn't a
+  new pattern invented for this phase — it's the same patient-vs-operator asymmetry from Phase 5
+  (appointment cancellation) and Phase 6 (order cancellation) applied to a new resource, because the
+  underlying shape of the problem (a customer-facing actor and an operator-facing actor needing
+  different permissions on the same record) is the same one, and reusing a proven shape is safer than
+  inventing a new permission model per feature.

@@ -22,6 +22,7 @@ export interface PublicProvider {
   consultationFee: number | null;
   operatingHoursNote: string | null;
   verifiedAt: string | null;
+  isCurrentlyAvailable?: boolean | null;
   distanceMeters?: number;
 }
 
@@ -50,6 +51,7 @@ export interface OwnerProviderApplication {
   location: LatLng | null;
   consultationFee: number | null;
   operatingHoursNote: string | null;
+  isCurrentlyAvailable: boolean | null;
   documents: ProviderDocument[];
   status: ApplicationStatus;
   rejectionReason: string | null;

@@ -39,5 +39,6 @@ export interface Order {
   hasPrescription: boolean;
   deliveryAddress: { line1: string; city: string; state: string; postalCode: string };
   status: OrderStatus;
+  assignedDeliveryPartnerId: string | null;
   createdAt: string;
 }

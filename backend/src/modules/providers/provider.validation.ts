@@ -60,6 +60,10 @@ export const transitionSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('mark_expired') }),
 ]);
 
+export const setAvailabilitySchema = z.object({
+  isCurrentlyAvailable: z.coerce.boolean(),
+});
+
 export const listApplicationsQuerySchema = z.object({
   status: z.string().optional(),
   providerType: z.string().optional(),

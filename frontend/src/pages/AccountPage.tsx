@@ -61,7 +61,26 @@ export function AccountPage() {
           <Link to="/caregiver-invites" className="btn btn-secondary">
             Caregiver invites
           </Link>
+          <Link to="/my-care-requests" className="btn btn-secondary">
+            Equipment & home care
+          </Link>
+          <Link to="/support" className="btn btn-secondary">
+            Support tickets
+          </Link>
         </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <h3>Delivery partner</h3>
+        {user.roles.includes('delivery_partner') ? (
+          <Link to="/my-deliveries" className="btn btn-secondary">
+            My deliveries
+          </Link>
+        ) : (
+          <Link to="/become-delivery-partner" className="btn btn-secondary">
+            Become a delivery partner
+          </Link>
+        )}
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>
@@ -86,12 +105,24 @@ export function AccountPage() {
         </Link>
       </div>
 
-      {user.roles.includes('super_admin') && (
+      {(user.roles.includes('super_admin') || user.roles.includes('support')) && (
         <div className="card" style={{ marginTop: 16 }}>
           <h3>Admin</h3>
-          <Link to="/admin/emergency-guides" className="btn btn-secondary">
-            Manage emergency guidance
-          </Link>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {user.roles.includes('super_admin') && (
+              <Link to="/admin/emergency-guides" className="btn btn-secondary">
+                Manage emergency guidance
+              </Link>
+            )}
+            {user.roles.includes('super_admin') && (
+              <Link to="/admin/delivery-partners" className="btn btn-secondary">
+                Delivery partner applications
+              </Link>
+            )}
+            <Link to="/admin/support-tickets" className="btn btn-secondary">
+              All support tickets
+            </Link>
+          </div>
         </div>
       )}
     </div>

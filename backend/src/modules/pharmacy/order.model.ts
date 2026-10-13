@@ -55,6 +55,7 @@ const orderSchema = new Schema(
     deliveryAddress: { type: addressSchema, required: true },
     status: { type: String, enum: ORDER_STATUSES, default: 'placed', index: true },
     statusHistory: { type: [statusHistoryEntrySchema], default: [] },
+    assignedDeliveryPartnerId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
   },
   { timestamps: true },
 );
@@ -82,6 +83,7 @@ export interface OrderAttrs {
   deliveryAddress: { line1: string; city: string; state: string; postalCode: string };
   status: (typeof ORDER_STATUSES)[number];
   statusHistory: { status: string; changedAt: Date; changedBy: Types.ObjectId | null }[];
+  assignedDeliveryPartnerId: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }

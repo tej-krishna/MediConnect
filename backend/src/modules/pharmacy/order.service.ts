@@ -5,8 +5,10 @@ import { storage } from '../../storage';
 import { ProviderApplication } from '../providers/provider.model';
 import { isActivelyVerified } from '../providers/provider.service';
 import { isProviderMember } from '../providers/providerStaff.service';
+import { isApprovedDeliveryPartner } from '../delivery/deliveryPartner.service';
 import { MedicineItem } from './medicine.model';
 import { Order, ORDER_STATUSES, type OrderDoc } from './order.model';
+import type { AssignDeliveryPartnerInput } from '../delivery/delivery.validation';
 import type { CreateOrderInput, OrderTransitionInput } from './pharmacy.validation';
 
 type OrderStatus = (typeof ORDER_STATUSES)[number];
@@ -166,6 +168,27 @@ async function restoreStock(order: OrderDoc, session: mongoose.ClientSession) {
   }
 }
 
+export async function assignDeliveryPartner(
+  orderId: string,
+  requesterId: string,
+  input: AssignDeliveryPartnerInput,
+): Promise<OrderDoc> {
+  const order = await loadOrderOr404(orderId);
+  if (!(await isProviderMember(order.pharmacyId.toString(), requesterId))) {
+    throw AppError.forbidden();
+  }
+  if (!['confirmed', 'preparing', 'out_for_delivery'].includes(order.status)) {
+    throw AppError.conflict(`Cannot assign a delivery partner while the order is "${order.status}"`);
+  }
+  if (!(await isApprovedDeliveryPartner(input.deliveryPartnerUserId))) {
+    throw AppError.badRequest('That user is not an approved delivery partner');
+  }
+
+  order.assignedDeliveryPartnerId = new Types.ObjectId(input.deliveryPartnerUserId);
+  await order.save();
+  return order;
+}
+
 export async function transitionOrder(
   orderId: string,
   requester: { id: string; roles: string[] },
@@ -174,9 +197,14 @@ export async function transitionOrder(
   const order = await loadOrderOr404(orderId);
   const isPatient = order.patientId.toString() === requester.id;
   const isPharmacyMember = !isPatient && (await isProviderMember(order.pharmacyId.toString(), requester.id));
+  const isAssignedDeliveryPartner =
+    !isPatient && !isPharmacyMember && order.assignedDeliveryPartnerId?.toString() === requester.id;
 
-  if (!isPatient && !isPharmacyMember) {
+  if (!isPatient && !isPharmacyMember && !isAssignedDeliveryPartner) {
     throw AppError.forbidden();
+  }
+  if (isAssignedDeliveryPartner && input.action !== 'deliver') {
+    throw AppError.forbidden('A delivery partner may only confirm delivery');
   }
   if (isPatient && input.action !== 'cancel') {
     throw AppError.forbidden('Patients may only cancel an order');
@@ -216,6 +244,16 @@ export async function listMyOrders(patientId: string, query: Record<string, unkn
   const [items, total] = await Promise.all([
     Order.find({ patientId }).sort({ createdAt: -1 }).skip(skip).limit(limit),
     Order.countDocuments({ patientId }),
+  ]);
+  return { items, meta: buildPaginationMeta(page, limit, total) };
+}
+
+export async function listMyDeliveries(deliveryPartnerUserId: string, query: Record<string, unknown>) {
+  const { page, limit, skip } = parsePagination(query);
+  const filter = { assignedDeliveryPartnerId: deliveryPartnerUserId };
+  const [items, total] = await Promise.all([
+    Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    Order.countDocuments(filter),
   ]);
   return { items, meta: buildPaginationMeta(page, limit, total) };
 }

@@ -5,6 +5,7 @@ import {
   uploadDocument,
   submitApplication,
   updateListingInfo,
+  setAvailability,
   PROVIDER_TYPE_LABELS,
 } from '../services/providerService';
 import {
@@ -19,6 +20,7 @@ import {
   updateMedicineItem,
   listPharmacyOrders,
   transitionOrder,
+  assignDeliveryPartner,
 } from '../services/pharmacyService';
 import {
   createTest,
@@ -30,11 +32,22 @@ import {
   listProviderCamps,
   cancelCamp,
 } from '../services/diagnosticsService';
+import {
+  createOffering,
+  listProviderOfferings,
+  updateOffering,
+  listProviderCareRequests,
+  transitionCareRequest,
+} from '../services/homecareService';
+import { listDeliveryPartnerDirectory } from '../services/deliveryService';
 import { ApiError } from '../services/apiClient';
 import type { OwnerProviderApplication } from '../types/provider';
 import type { Slot, Appointment } from '../types/scheduling';
 import type { Medicine, Order, OrderStatus } from '../types/pharmacy';
 import type { DiagnosticTest, DiagnosticOrder, DiagnosticOrderStatus, HealthCamp } from '../types/diagnostics';
+import { OFFERING_TYPE_LABELS } from '../types/homecare';
+import type { CareOffering, CareRequest, OfferingType } from '../types/homecare';
+import type { DeliveryPartnerDirectoryEntry } from '../types/delivery';
 import './ProviderDashboardPage.css';
 
 // diagnostic_lab deliberately excluded: labs book through their own DiagnosticOrder flow
@@ -42,6 +55,17 @@ import './ProviderDashboardPage.css';
 // system doctors/hospitals/clinics use.
 const SCHEDULING_TYPES = new Set(['doctor', 'hospital', 'clinic']);
 const CAMP_TYPES = new Set(['mobile_van_operator', 'ngo_coordinator']);
+
+function getNextCareRequestAction(req: CareRequest): { action: string; label: string } | null {
+  if (req.status === 'requested') return { action: 'confirm', label: 'Confirm' };
+  if (req.status === 'confirmed') return { action: 'fulfill', label: 'Mark fulfilled' };
+  if (req.status === 'fulfilled') {
+    return req.offeringType === 'equipment_rental'
+      ? { action: 'mark_returned', label: 'Mark returned' }
+      : { action: 'mark_completed', label: 'Mark completed' };
+  }
+  return null;
+}
 
 const NEXT_ORDER_ACTION: Partial<Record<OrderStatus, { action: string; label: string }>> = {
   placed: { action: 'confirm', label: 'Confirm' },
@@ -122,6 +146,20 @@ export function ProviderDashboardPage() {
   const [campCapacity, setCampCapacity] = useState('20');
   const [creatingCamp, setCreatingCamp] = useState(false);
 
+  const [offerings, setOfferings] = useState<CareOffering[]>([]);
+  const [offeringName, setOfferingName] = useState('');
+  const [offeringCategory, setOfferingCategory] = useState('');
+  const [offeringType, setOfferingType] = useState<OfferingType>('equipment_rental');
+  const [offeringPrice, setOfferingPrice] = useState('');
+  const [offeringQuantity, setOfferingQuantity] = useState('');
+  const [creatingOffering, setCreatingOffering] = useState(false);
+  const [careRequests, setCareRequests] = useState<CareRequest[]>([]);
+
+  const [togglingAvailability, setTogglingAvailability] = useState(false);
+
+  const [deliveryDirectory, setDeliveryDirectory] = useState<DeliveryPartnerDirectoryEntry[]>([]);
+  const [selectedDeliveryPartner, setSelectedDeliveryPartner] = useState<Record<string, string>>({});
+
   const reload = useCallback(async () => {
     if (!id) return;
     try {
@@ -138,9 +176,22 @@ export function ProviderDashboardPage() {
         setAppointments(appointmentList);
       }
       if (app.status === 'approved' && app.providerType === 'pharmacy') {
-        const [medicineList, orderList] = await Promise.all([listPharmacyMedicines(id), listPharmacyOrders(id)]);
+        const [medicineList, orderList, directory] = await Promise.all([
+          listPharmacyMedicines(id),
+          listPharmacyOrders(id),
+          listDeliveryPartnerDirectory(),
+        ]);
         setMedicines(medicineList);
         setPharmacyOrders(orderList);
+        setDeliveryDirectory(directory);
+      }
+      if (app.status === 'approved' && app.providerType === 'equipment_provider') {
+        const [offeringList, requestList] = await Promise.all([
+          listProviderOfferings(id),
+          listProviderCareRequests(id),
+        ]);
+        setOfferings(offeringList);
+        setCareRequests(requestList);
       }
       if (app.status === 'approved' && app.providerType === 'diagnostic_lab') {
         const [testList, orderList] = await Promise.all([listLabTests(id), listLabOrders(id)]);
@@ -390,6 +441,79 @@ export function ProviderDashboardPage() {
     }
   }
 
+  async function handleCreateOffering(e: FormEvent) {
+    e.preventDefault();
+    if (!id) return;
+    setCreatingOffering(true);
+    setError(null);
+    try {
+      await createOffering(id, {
+        name: offeringName,
+        category: offeringCategory,
+        offeringType,
+        price: Number(offeringPrice) || 0,
+        availableQuantity: offeringType === 'home_visit_service' ? null : Number(offeringQuantity) || 0,
+      });
+      setOfferingName('');
+      setOfferingCategory('');
+      setOfferingPrice('');
+      setOfferingQuantity('');
+      setMessage('Offering added.');
+      await reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not add offering.');
+    } finally {
+      setCreatingOffering(false);
+    }
+  }
+
+  async function handleToggleOfferingActive(offeringId: string, isActive: boolean) {
+    if (!id) return;
+    setError(null);
+    try {
+      await updateOffering(id, offeringId, { isActive });
+      await reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not update offering.');
+    }
+  }
+
+  async function handleCareRequestAction(requestId: string, action: string) {
+    setError(null);
+    try {
+      await transitionCareRequest(requestId, action);
+      await reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not update this request.');
+    }
+  }
+
+  async function handleToggleAvailability() {
+    if (!id || !application) return;
+    setTogglingAvailability(true);
+    setError(null);
+    try {
+      await setAvailability(id, !application.isCurrentlyAvailable);
+      await reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not update availability.');
+    } finally {
+      setTogglingAvailability(false);
+    }
+  }
+
+  async function handleAssignDeliveryPartner(orderId: string) {
+    const deliveryPartnerUserId = selectedDeliveryPartner[orderId];
+    if (!deliveryPartnerUserId) return;
+    setError(null);
+    try {
+      await assignDeliveryPartner(orderId, deliveryPartnerUserId);
+      await reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not assign a delivery partner.');
+    }
+  }
+
   if (loading) return <div className="page-loading">Loading dashboard…</div>;
   if (!application) return <div className="page-error">{error ?? 'Application not found.'}</div>;
 
@@ -466,6 +590,26 @@ export function ProviderDashboardPage() {
               </button>
             </form>
           </div>
+
+          {application.providerType === 'ambulance_provider' && (
+            <div className="card">
+              <h3>Availability</h3>
+              <p className="text-muted">
+                Patients searching for emergency ambulance services see this status. Toggle it off when your vehicle is busy or offline.
+              </p>
+              <p>
+                Currently:{' '}
+                <strong>{application.isCurrentlyAvailable ? 'Available' : 'Not available'}</strong>
+              </p>
+              <button className="btn btn-primary" disabled={togglingAvailability} onClick={handleToggleAvailability}>
+                {togglingAvailability
+                  ? 'Updating…'
+                  : application.isCurrentlyAvailable
+                    ? 'Mark as unavailable'
+                    : 'Mark as available'}
+              </button>
+            </div>
+          )}
 
           {SCHEDULING_TYPES.has(application.providerType) && (
           <div className="card">
@@ -665,17 +809,45 @@ export function ProviderDashboardPage() {
                       <th>Items</th>
                       <th>Total</th>
                       <th>Status</th>
+                      <th>Delivery partner</th>
                       <th />
                     </tr>
                   </thead>
                   <tbody>
                     {pharmacyOrders.map((order) => {
                       const next = NEXT_ORDER_ACTION[order.status];
+                      const canAssign = ['confirmed', 'preparing', 'out_for_delivery'].includes(order.status);
                       return (
                         <tr key={order.id}>
                           <td>{order.items.map((i) => `${i.name} x${i.quantity}`).join(', ')}</td>
                           <td>₹{order.totalAmount}</td>
                           <td>{order.status.replace(/_/g, ' ')}</td>
+                          <td>
+                            {canAssign ? (
+                              <div style={{ display: 'flex', gap: 4 }}>
+                                <select
+                                  value={selectedDeliveryPartner[order.id] ?? order.assignedDeliveryPartnerId ?? ''}
+                                  onChange={(e) =>
+                                    setSelectedDeliveryPartner((prev) => ({ ...prev, [order.id]: e.target.value }))
+                                  }
+                                >
+                                  <option value="">Choose…</option>
+                                  {deliveryDirectory.map((dp) => (
+                                    <option key={dp.userId} value={dp.userId}>
+                                      {dp.fullName} ({dp.serviceCity})
+                                    </option>
+                                  ))}
+                                </select>
+                                <button className="btn btn-secondary" onClick={() => handleAssignDeliveryPartner(order.id)}>
+                                  Assign
+                                </button>
+                              </div>
+                            ) : order.assignedDeliveryPartnerId ? (
+                              'Assigned'
+                            ) : (
+                              '—'
+                            )}
+                          </td>
                           <td>
                             {next && (
                               <button className="btn btn-secondary" onClick={() => handleOrderAction(order.id, next.action)}>
@@ -688,7 +860,7 @@ export function ProviderDashboardPage() {
                     })}
                     {pharmacyOrders.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="text-muted">
+                        <td colSpan={5} className="text-muted">
                           No orders yet.
                         </td>
                       </tr>
@@ -896,6 +1068,148 @@ export function ProviderDashboardPage() {
                 </tbody>
               </table>
             </div>
+          )}
+
+          {application.providerType === 'equipment_provider' && (
+            <>
+              <div className="card">
+                <h3>Equipment & home-care offerings</h3>
+                <form onSubmit={handleCreateOffering} className="inline-form">
+                  <div className="form-field">
+                    <label htmlFor="offeringName">Name</label>
+                    <input id="offeringName" required value={offeringName} onChange={(e) => setOfferingName(e.target.value)} />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="offeringCategory">Category</label>
+                    <input
+                      id="offeringCategory"
+                      required
+                      placeholder="e.g. mobility, respiratory, nursing"
+                      value={offeringCategory}
+                      onChange={(e) => setOfferingCategory(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="offeringType">Type</label>
+                    <select id="offeringType" value={offeringType} onChange={(e) => setOfferingType(e.target.value as OfferingType)}>
+                      {Object.entries(OFFERING_TYPE_LABELS).map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="offeringPrice">Price (₹)</label>
+                    <input
+                      id="offeringPrice"
+                      type="number"
+                      min={0}
+                      required
+                      style={{ width: 90 }}
+                      value={offeringPrice}
+                      onChange={(e) => setOfferingPrice(e.target.value)}
+                    />
+                  </div>
+                  {offeringType !== 'home_visit_service' && (
+                    <div className="form-field">
+                      <label htmlFor="offeringQuantity">Available quantity</label>
+                      <input
+                        id="offeringQuantity"
+                        type="number"
+                        min={0}
+                        required
+                        style={{ width: 90 }}
+                        value={offeringQuantity}
+                        onChange={(e) => setOfferingQuantity(e.target.value)}
+                      />
+                    </div>
+                  )}
+                  <button type="submit" className="btn btn-secondary" disabled={creatingOffering}>
+                    {creatingOffering ? 'Adding…' : 'Add offering'}
+                  </button>
+                </form>
+
+                <table className="simple-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th>Price</th>
+                      <th>Available</th>
+                      <th>Active</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {offerings.map((offering) => (
+                      <tr key={offering.id}>
+                        <td>{offering.name}</td>
+                        <td>{OFFERING_TYPE_LABELS[offering.offeringType]}</td>
+                        <td>₹{offering.price}</td>
+                        <td>{offering.availableQuantity ?? '—'}</td>
+                        <td>
+                          <button
+                            className="btn btn-secondary"
+                            onClick={() => handleToggleOfferingActive(offering.id, !offering.isActive)}
+                          >
+                            {offering.isActive ? 'Deactivate' : 'Activate'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {offerings.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="text-muted">
+                          No offerings yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="card">
+                <h3>Requests</h3>
+                <table className="simple-table">
+                  <thead>
+                    <tr>
+                      <th>Offering</th>
+                      <th>Qty</th>
+                      <th>Total</th>
+                      <th>Status</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {careRequests.map((req) => {
+                      const next = getNextCareRequestAction(req);
+                      return (
+                        <tr key={req.id}>
+                          <td>{req.offeringNameSnapshot}</td>
+                          <td>{req.quantity}</td>
+                          <td>₹{req.totalAmount}</td>
+                          <td>{req.status.replace(/_/g, ' ')}</td>
+                          <td>
+                            {next && (
+                              <button className="btn btn-secondary" onClick={() => handleCareRequestAction(req.id, next.action)}>
+                                {next.label}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {careRequests.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="text-muted">
+                          No requests yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </>
       )}

@@ -82,6 +82,14 @@ export async function updateListingInfo(
   return data.application;
 }
 
+export async function setAvailability(id: string, isCurrentlyAvailable: boolean): Promise<OwnerProviderApplication> {
+  const { data } = await api.patch<{ application: OwnerProviderApplication }>(
+    `/providers/applications/${id}/availability`,
+    { isCurrentlyAvailable },
+  );
+  return data.application;
+}
+
 export const PROVIDER_TYPE_LABELS: Record<string, string> = {
   doctor: 'Doctor',
   hospital: 'Hospital',
