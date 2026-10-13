@@ -567,3 +567,48 @@ built versus planned. Entries are added here at the end of each phase, not in ad
   a proper E2E suite is a substantial scope of its own (environment setup, test-data fixtures, CI
   wiring) that this phase's time was better spent finding and fixing the two real bugs above than
   starting and leaving half-finished.
+
+### Phase 13 — Stabilizing APIs for Flutter
+
+- **The OpenAPI spec is generated from the same zod schemas that validate requests, not
+  hand-written.** A hand-maintained spec for ~95 endpoints is both a huge amount of error-prone
+  transcription and, worse, a second description of each contract that can silently drift from the
+  real one the moment a schema changes and nobody remembers to update the doc by hand. Zod v4 ships
+  `z.toJSONSchema()` natively, so `scripts/generate-openapi.ts` converts the actual imported schema
+  for every request body and query string — the literal object `validateBody()` runs at request time
+  — rather than re-describing it. The only hand-curated part is route metadata (method, path, auth,
+  tags) that Express's router objects don't carry themselves; everything that could drift from the
+  real contract is derived, not retyped. `tests/openapi.test.ts` runs the generator for real as part
+  of the suite specifically so a schema construct it can't represent fails CI immediately, the way
+  `z.coerce.date()` did the first time the script ran, rather than silently producing a stale spec.
+- **Mobile gets the raw refresh token only when it explicitly asks for it, via a header, never
+  inferred.** Before this phase, `/auth/refresh` and `/auth/logout` read the refresh token *only*
+  from the HttpOnly cookie, and `/auth/login` never returned it in the response body at all — meaning
+  a native mobile client had no documented way to obtain a refresh token whatsoever. The fix adds a
+  second channel without weakening the first: the website's behavior is completely unchanged (the
+  cookie is still HttpOnly, still never reaches JavaScript), and a client only receives the raw token
+  in the JSON body by sending `X-Client-Platform: mobile` — an explicit opt-in the caller controls,
+  never inferred from `User-Agent` (trivially spoofable by a browser, and not a reliable signal for a
+  mobile HTTP client either). Accepting the token back via the request body on refresh/logout is safe
+  to allow unconditionally for every caller, cookie or not — it's just an alternate transport for a
+  value the request already legitimately needs to prove it holds, not a new way to forge one.
+- **CORS is explicitly documented as a web-only concern, not configured differently for mobile.**
+  `CORS_ORIGIN` governs a browser-enforced mechanism; a native Android/iOS Flutter app's HTTP client
+  has no same-origin policy to enforce in the first place, so the mobile app needs zero CORS
+  configuration to work. This is worth stating plainly in the docs specifically because it's a common
+  point of confusion — someone unfamiliar with the distinction might otherwise assume the mobile app's
+  bundle ID or scheme needs adding to `CORS_ORIGIN`, which would be a no-op at best and a sign of a
+  misunderstanding at worst.
+- **The pagination audit paginated growing history, not managed catalogues — on purpose, not by
+  oversight.** Checking every `list*` service function surfaced several that don't paginate
+  (`listPharmacyMedicines`, `listLabTests`, `listProviderCamps`, `listStaff`, …) alongside three that
+  didn't but should have (`listDocuments`, `listVisits`, `listAccessLog` in medical records). The
+  distinction is what kind of collection each one is: the unpaginated ones are a provider's own
+  catalogue or roster, rendered as a single editable table a dashboard owner needs to see and edit as
+  a whole, where pagination would actively hurt the UX it's actually used for. The three that got
+  fixed are patient-facing *history* that only ever grows over the lifetime of an account — years of
+  documents, visits, and caregiver-access log entries — exactly the shape of collection an unbounded
+  query becomes a real problem for, especially for a mobile client on a metered or slow connection.
+  Recognizing that distinction and fixing only the genuine gap, rather than paginating everything for
+  uniformity, matches this project's standing practice of not solving a problem that doesn't exist
+  alongside the one that does.

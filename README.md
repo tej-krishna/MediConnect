@@ -14,7 +14,7 @@ for current build status.
 ```
 frontend/   React + TypeScript + Vite website
 backend/    Node.js + Express + TypeScript REST API
-mobile/     Flutter app (added in Phase 13)
+mobile/     Flutter app (added in Phase 14)
 ```
 
 ## Prerequisites
@@ -79,6 +79,48 @@ Each package has its own `.env.example`:
 
 Copy each to `.env` in the same folder and fill in real values before running. Never commit `.env`
 files — they are already excluded via `.gitignore`.
+
+## API documentation
+
+`backend/openapi.json` is a complete OpenAPI 3.0 spec covering every route — auth requirement,
+path/query parameters, and request-body shape. It's generated, not hand-written: `scripts/generate-openapi.ts`
+builds every request-body and query schema directly from the same zod schemas that validate requests
+at runtime (via zod v4's native `z.toJSONSchema()`), so it can't silently drift from what the API
+actually accepts the way a separately hand-maintained spec could. Route metadata (method, path, auth,
+tags) is curated in that same script, since Express routes don't carry that information themselves.
+
+Regenerate it after changing any validation schema or adding/removing a route:
+
+```bash
+cd backend
+npm run generate:openapi
+```
+
+`tests/openapi.test.ts` runs the generator itself as part of the normal test suite, so a schema
+change that `z.toJSONSchema()` can't represent (the way `z.coerce.date()` couldn't until the script's
+`override` handled it) fails CI immediately instead of producing a stale or broken spec that goes
+unnoticed. Paste `openapi.json`'s contents into any OpenAPI viewer (Swagger UI, Postman, Redocly) to
+browse it, or point client-code generators at it directly.
+
+### Mobile vs. web authentication
+
+The website and a native Flutter app need different refresh-token handling, since a native app has
+no browser cookie jar:
+
+- **Website** (unchanged): `/auth/login` and `/auth/refresh` set the refresh token as an `HttpOnly`
+  cookie scoped to `/api/v1/auth`. JavaScript never sees the raw token — that's deliberate, it's what
+  keeps it safe from an XSS payload. The access token is held in memory only (see `AuthContext.tsx`).
+- **Mobile**: sending the header `X-Client-Platform: mobile` on `/auth/login` or `/auth/refresh`
+  additionally returns the raw refresh token in the JSON response body. The app is expected to store
+  it in platform secure storage (iOS Keychain / Android Keystore via a package like
+  `flutter_secure_storage`) — never plain `SharedPreferences`/unencrypted storage. `/auth/refresh` and
+  `/auth/logout` both accept `{ "refreshToken": "..." }` in the body as a fallback whenever no cookie
+  is present, which is always true for a native client.
+- **CORS** (`CORS_ORIGIN`) only restricts browser-based callers — the same-origin policy it enforces
+  is a browser mechanism. A native Android/iOS Flutter app's HTTP requests are never subject to it, so
+  nothing needs to be added to `CORS_ORIGIN` for the mobile app to work; CORS only matters if a future
+  Flutter **web** build is ever shipped, at which point its origin would need adding like any other
+  browser client.
 
 ## Production deployment
 

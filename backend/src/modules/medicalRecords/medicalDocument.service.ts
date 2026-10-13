@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import { AppError } from '../../utils/AppError';
+import { parsePagination, buildPaginationMeta } from '../../utils/response';
 import { storage } from '../../storage';
 import { assertAccess, logAccess } from './medicalRecords.access';
 import { MedicalDocument, type MedicalDocumentDoc } from './medicalDocument.model';
@@ -37,10 +38,15 @@ export async function uploadDocument(
   });
 }
 
-export async function listDocuments(patientId: string, requesterId: string): Promise<MedicalDocumentDoc[]> {
+export async function listDocuments(patientId: string, requesterId: string, query: Record<string, unknown>) {
   await assertAccess(patientId, requesterId, 'view_documents');
   await logAccess(patientId, requesterId, 'view_documents');
-  return MedicalDocument.find({ patientId }).sort({ createdAt: -1 });
+  const { page, limit, skip } = parsePagination(query);
+  const [items, total] = await Promise.all([
+    MedicalDocument.find({ patientId }).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    MedicalDocument.countDocuments({ patientId }),
+  ]);
+  return { items, meta: buildPaginationMeta(page, limit, total) };
 }
 
 export async function downloadDocument(patientId: string, documentId: string, requesterId: string) {

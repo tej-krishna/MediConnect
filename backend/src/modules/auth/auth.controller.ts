@@ -30,6 +30,22 @@ function requestMeta(req: Request) {
   return { userAgent: typeof userAgent === 'string' ? userAgent : undefined, ip: req.ip };
 }
 
+/**
+ * The website never needs the raw refresh token outside the HttpOnly cookie — handing it to JS
+ * would undo the whole point of HttpOnly (keeping it out of reach of an XSS payload). A native
+ * mobile app has no browser cookie jar at all, so it has no other way to obtain or resend one.
+ * `X-Client-Platform: mobile` is this API's explicit opt-in for that different, documented need —
+ * never inferred from User-Agent, which a browser can trivially spoof and a mobile client might
+ * configure however it likes.
+ */
+function isMobileClient(req: Request): boolean {
+  return req.headers['x-client-platform'] === 'mobile';
+}
+
+function readRefreshToken(req: Request): string | undefined {
+  return req.cookies?.[REFRESH_TOKEN_COOKIE_NAME] ?? (typeof req.body?.refreshToken === 'string' ? req.body.refreshToken : undefined);
+}
+
 export const registerHandler = asyncHandler(async (req, res) => {
   const user = await authService.register(req.body);
   sendSuccess(res, { user: toPublicUser(user) }, 201);
@@ -38,22 +54,32 @@ export const registerHandler = asyncHandler(async (req, res) => {
 export const loginHandler = asyncHandler(async (req, res) => {
   const { user, tokens } = await authService.login(req.body, requestMeta(req));
   setRefreshCookie(res, tokens);
-  sendSuccess(res, { user: toPublicUser(user), accessToken: tokens.accessToken });
+  const mobile = isMobileClient(req);
+  sendSuccess(res, {
+    user: toPublicUser(user),
+    accessToken: tokens.accessToken,
+    ...(mobile ? { refreshToken: tokens.refreshToken } : {}),
+  });
 });
 
 export const refreshHandler = asyncHandler(async (req, res) => {
-  const rawToken = req.cookies?.[REFRESH_TOKEN_COOKIE_NAME];
+  const rawToken = readRefreshToken(req);
   if (!rawToken) {
     throw AppError.unauthorized('Missing refresh token');
   }
 
   const { user, tokens } = await authService.refresh(rawToken, requestMeta(req));
   setRefreshCookie(res, tokens);
-  sendSuccess(res, { user: toPublicUser(user), accessToken: tokens.accessToken });
+  const mobile = isMobileClient(req);
+  sendSuccess(res, {
+    user: toPublicUser(user),
+    accessToken: tokens.accessToken,
+    ...(mobile ? { refreshToken: tokens.refreshToken } : {}),
+  });
 });
 
 export const logoutHandler = asyncHandler(async (req, res) => {
-  const rawToken = req.cookies?.[REFRESH_TOKEN_COOKIE_NAME];
+  const rawToken = readRefreshToken(req);
   if (rawToken) {
     await authService.logout(rawToken);
   }

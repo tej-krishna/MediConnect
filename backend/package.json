@@ -10,7 +10,8 @@
     "start": "node dist/server.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint src tests"
+    "lint": "eslint src tests scripts",
+    "generate:openapi": "tsx scripts/generate-openapi.ts"
   },
   "keywords": [],
   "author": "",

@@ -1,4 +1,5 @@
 import { AppError } from '../../utils/AppError';
+import { parsePagination, buildPaginationMeta } from '../../utils/response';
 import { assertAccess, logAccess } from './medicalRecords.access';
 import { VisitRecord, type VisitRecordDoc } from './visitRecord.model';
 import type { CreateVisitInput, UpdateVisitInput } from './medicalRecords.validation';
@@ -12,10 +13,15 @@ export async function createVisit(
   return VisitRecord.create({ patientId, createdBy: requesterId, ...input });
 }
 
-export async function listVisits(patientId: string, requesterId: string): Promise<VisitRecordDoc[]> {
+export async function listVisits(patientId: string, requesterId: string, query: Record<string, unknown>) {
   await assertAccess(patientId, requesterId, 'view_visits');
   await logAccess(patientId, requesterId, 'view_visits');
-  return VisitRecord.find({ patientId }).sort({ visitDate: -1 });
+  const { page, limit, skip } = parsePagination(query);
+  const [items, total] = await Promise.all([
+    VisitRecord.find({ patientId }).sort({ visitDate: -1 }).skip(skip).limit(limit),
+    VisitRecord.countDocuments({ patientId }),
+  ]);
+  return { items, meta: buildPaginationMeta(page, limit, total) };
 }
 
 export async function updateVisit(

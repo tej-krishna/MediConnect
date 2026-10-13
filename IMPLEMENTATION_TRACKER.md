@@ -6,8 +6,8 @@ A task is marked `[x]` only after its code, tests, and manual verification all p
 `ARCHITECTURE.md` for the decisions behind these choices and `README.md` for how to run each
 package.
 
-**Current phase: Phase 13 — Stabilize APIs for Flutter**
-**Next task: 13.1 — Finalize REST contracts and OpenAPI documentation**
+**Current phase: Phase 14 — Flutter Mobile Application**
+**Next task: 14.1 — Flutter project setup, API client, auth/token refresh/logout, secure token storage**
 
 ---
 
@@ -193,9 +193,60 @@ package.
 
 ## Phase 13 — Stabilize APIs for Flutter
 
-- [ ] 13.1 — Finalize REST contracts and OpenAPI documentation.
-- [ ] 13.2 — Confirm every mobile-required workflow has authenticated, paginated, validated APIs.
-- [ ] 13.3 — API compatibility/regression tests; CORS and web/mobile auth configuration documented.
+- [x] 13.1 — New `backend/scripts/generate-openapi.ts` generates a complete OpenAPI 3.0 spec
+  (`backend/openapi.json`, 106 paths / 119 operations) directly from the same zod schemas that
+  validate every request at runtime, via zod v4's native `z.toJSONSchema()` — the request-body and
+  query documentation is derived from the real contract, not a separately hand-typed description that
+  could silently drift from it. Route metadata (method, path, auth requirement, role, tags) is
+  curated in the same script, since Express routers don't carry that information themselves.
+  `npm run generate:openapi` regenerates it; `tests/openapi.test.ts` runs the generator for real as
+  part of the normal suite, so a future schema construct it can't represent fails CI immediately.
+- [x] 13.2 — Audited every `list*` service function across all 22 modules against two questions:
+  is it authenticated/authorized correctly (it already was, everywhere — covered by each module's own
+  tests from the phase that built it), and is it paginated where that matters. Found and fixed a real,
+  specific gap: three patient-facing *history* endpoints in medical records — `listDocuments`,
+  `listVisits`, `listAccessLog` — had no pagination at all despite being exactly the kind of
+  collection that grows unbounded over the lifetime of an account (years of documents, visits, and
+  caregiver-access entries), a genuine problem for a mobile client on a slow or metered connection.
+  Deliberately left unpaginated: provider-owned catalogue/roster views (`listPharmacyMedicines`,
+  `listLabTests`, `listProviderCamps`, `listStaff`, `listMyGrants`, …) — these are rendered as a
+  single editable table an owner needs to see as a whole, a different kind of collection where
+  pagination would hurt the UX it's for, not help it; this is consistent with how every other module
+  already handles this exact distinction, not an oversight being left unfixed.
+- [x] 13.3 — Closed a real gap found while reviewing the contract for mobile-readiness: `/auth/refresh`
+  and `/auth/logout` previously read the refresh token *only* from the HttpOnly cookie, and
+  `/auth/login` never returned it in the response body at all — meaning a native mobile client had no
+  documented way to ever obtain a refresh token. Fixed without changing the website's behavior at all:
+  sending `X-Client-Platform: mobile` on `/auth/login` or `/auth/refresh` additionally returns the raw
+  refresh token in the JSON body (an explicit, caller-controlled opt-in — never inferred from
+  `User-Agent`), and `/auth/refresh`/`/auth/logout` now accept `{ "refreshToken": "..." }` in the body
+  as a fallback whenever no cookie is present. README.md documents this plus the CORS/web-vs-mobile
+  distinction (`CORS_ORIGIN` only restricts browser callers — a native app's HTTP client has no
+  same-origin policy to enforce in the first place, so no mobile-specific CORS configuration is
+  needed).
+
+**Evidence:**
+- Backend: `npm run typecheck`, `npm run build`, `npm run lint` all pass; `npx vitest run` → 21 files /
+  85 tests passing. New: `tests/openapi.test.ts` (the generator runs for real and produces a
+  well-formed spec covering every module's tag, with `/auth/register` correctly carrying no security
+  requirement and `/auth/me` correctly requiring `bearerAuth`), a new pagination test in
+  `tests/medicalRecords.test.ts` (25 visit records created, first and second pages of 10 returned with
+  correct `meta.totalPages: 3` and no overlapping IDs between pages — proving the fix actually works,
+  not just that nothing broke), and a new mobile-auth-flow test in `tests/auth.test.ts` (a web login
+  never receives `refreshToken` in the body; a mobile login does; refreshing and logging out via the
+  body-only token — no cookie jar at all — both work; the pre-refresh token is correctly rejected as
+  reused afterward, and the post-logout token is correctly rejected too).
+- Spot-checked the generated spec directly for a representative, non-trivial sample: the
+  `z.discriminatedUnion` for `POST /providers/admin/{id}/transition` correctly expanded into all six
+  `oneOf` variants with their exact per-action required fields; the multipart document-upload endpoint
+  for medical records correctly combined the file field with `documentMetaSchema`'s `documentType`
+  enum, `title`, and optional `visitDate` (converted to `date-time`, not left unrepresentable).
+
+**Known issues / deferred:** The OpenAPI spec documents the contract; it isn't wired up to serve
+interactive docs (e.g. Swagger UI) from a live route — a reasonable follow-up, not done here since
+nothing in this phase's scope needed it served, only generated and accurate. No client SDK is
+generated from the spec yet — Phase 14's Flutter app will either hand-write its API client against
+this contract or generate one from `openapi.json`; that choice belongs to Phase 14, not this one.
 
 ## Phase 14 — Flutter Mobile Application
 

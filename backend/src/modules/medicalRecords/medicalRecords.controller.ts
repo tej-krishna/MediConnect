@@ -93,8 +93,8 @@ export const uploadDocumentHandler = asyncHandler(async (req, res) => {
 
 export const listDocumentsHandler = asyncHandler(async (req, res) => {
   const patientId = resolvePatientId(req.params.patientId as string, req.user!.id);
-  const docs = await documentService.listDocuments(patientId, req.user!.id);
-  sendSuccess(res, { documents: docs.map(toDocumentView) });
+  const { items, meta } = await documentService.listDocuments(patientId, req.user!.id, req.query as Record<string, unknown>);
+  sendSuccess(res, { documents: items.map(toDocumentView) }, 200, meta);
 });
 
 export const downloadDocumentHandler = asyncHandler(async (req, res) => {
@@ -123,8 +123,8 @@ export const createVisitHandler = asyncHandler(async (req, res) => {
 
 export const listVisitsHandler = asyncHandler(async (req, res) => {
   const patientId = resolvePatientId(req.params.patientId as string, req.user!.id);
-  const visits = await visitService.listVisits(patientId, req.user!.id);
-  sendSuccess(res, { visits: visits.map(toVisitView) });
+  const { items, meta } = await visitService.listVisits(patientId, req.user!.id, req.query as Record<string, unknown>);
+  sendSuccess(res, { visits: items.map(toVisitView) }, 200, meta);
 });
 
 export const updateVisitHandler = asyncHandler(async (req, res) => {
@@ -171,6 +171,6 @@ export const declineInviteHandler = asyncHandler(async (req, res) => {
 
 export const listAccessLogHandler = asyncHandler(async (req, res) => {
   const patientId = resolvePatientId(req.params.patientId as string, req.user!.id);
-  const logs = await auditService.listAccessLog(patientId, req.user!.id);
-  sendSuccess(res, { logs: logs.map(toLogView) });
+  const { items, meta } = await auditService.listAccessLog(patientId, req.user!.id, req.query as Record<string, unknown>);
+  sendSuccess(res, { logs: items.map(toLogView) }, 200, meta);
 });

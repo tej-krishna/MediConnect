@@ -135,4 +135,41 @@ describe('auth: register, login, refresh, logout', () => {
     const currentShouldAlsoFail = await agent.post(`${base}/auth/refresh`);
     expect(currentShouldAlsoFail.status).toBe(401);
   });
+
+  it('gives a mobile client (X-Client-Platform: mobile) the raw refresh token to store itself, never a browser client', async () => {
+    const email = uniqueEmail();
+    const password = 'correct-horse-1';
+    await request(app).post(`${base}/auth/register`).send({ email, password, fullName: 'Mobile Test' });
+
+    const webLogin = await request(app).post(`${base}/auth/login`).send({ email, password });
+    expect(webLogin.body.data.refreshToken).toBeUndefined();
+
+    const mobileLogin = await request(app)
+      .post(`${base}/auth/login`)
+      .set('X-Client-Platform', 'mobile')
+      .send({ email, password });
+    expect(mobileLogin.status).toBe(200);
+    const mobileRefreshToken = mobileLogin.body.data.refreshToken as string;
+    expect(typeof mobileRefreshToken).toBe('string');
+    expect(mobileRefreshToken.length).toBeGreaterThan(10);
+
+    // No cookie jar at all — the refresh token travels only in the JSON body, as a native app would.
+    const refreshViaBody = await request(app)
+      .post(`${base}/auth/refresh`)
+      .set('X-Client-Platform', 'mobile')
+      .send({ refreshToken: mobileRefreshToken });
+    expect(refreshViaBody.status).toBe(200);
+    expect(typeof refreshViaBody.body.data.refreshToken).toBe('string');
+    const rotatedToken = refreshViaBody.body.data.refreshToken as string;
+
+    // The token login first issued was rotated out by the refresh above — reusing it must fail.
+    const reuseOldToken = await request(app).post(`${base}/auth/refresh`).send({ refreshToken: mobileRefreshToken });
+    expect(reuseOldToken.status).toBe(401);
+
+    const logoutViaBody = await request(app).post(`${base}/auth/logout`).send({ refreshToken: rotatedToken });
+    expect(logoutViaBody.status).toBe(200);
+
+    const refreshAfterLogout = await request(app).post(`${base}/auth/refresh`).send({ refreshToken: rotatedToken });
+    expect(refreshAfterLogout.status).toBe(401);
+  });
 });

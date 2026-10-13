@@ -75,6 +75,36 @@ describe('medical records: patient self-access', () => {
     expect(deleteDocRes.status).toBe(200);
   });
 
+  it('paginates visit records so a long history never arrives in one unbounded response', async () => {
+    const patient = await registerAndLogin(app);
+
+    for (let i = 0; i < 25; i++) {
+      await request(app)
+        .post(`${base}/medical-records/me/visits`)
+        .set(authHeader(patient.accessToken))
+        .send({ visitDate: new Date(2020, 0, i + 1).toISOString(), reasonForVisit: `Checkup ${i}` });
+    }
+
+    const firstPage = await request(app)
+      .get(`${base}/medical-records/me/visits`)
+      .set(authHeader(patient.accessToken))
+      .query({ limit: 10 });
+    expect(firstPage.status).toBe(200);
+    expect(firstPage.body.data.visits).toHaveLength(10);
+    expect(firstPage.body.meta).toEqual({ page: 1, limit: 10, total: 25, totalPages: 3 });
+
+    const secondPage = await request(app)
+      .get(`${base}/medical-records/me/visits`)
+      .set(authHeader(patient.accessToken))
+      .query({ limit: 10, page: 2 });
+    expect(secondPage.body.data.visits).toHaveLength(10);
+    expect(secondPage.body.meta.page).toBe(2);
+
+    const firstPageIds = new Set(firstPage.body.data.visits.map((v: { id: string }) => v.id));
+    const secondPageIds = secondPage.body.data.visits.map((v: { id: string }) => v.id);
+    expect(secondPageIds.some((id: string) => firstPageIds.has(id))).toBe(false);
+  });
+
   it('blocks a stranger with no caregiver grant from reading or writing another patient\'s records', async () => {
     const patient = await registerAndLogin(app);
     const stranger = await registerAndLogin(app);
