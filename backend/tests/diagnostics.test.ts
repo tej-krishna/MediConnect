@@ -106,7 +106,13 @@ describe('diagnostics: test catalogue and lab orders', () => {
     expect(orderRes.status).toBe(201);
     expect(orderRes.body.data.order.status).toBe('requested');
     expect(orderRes.body.data.order.totalAmount).toBe(500);
+    expect(orderRes.body.data.order.hasReport).toBe(false);
     const orderId = orderRes.body.data.order.id as string;
+
+    const downloadBeforeReport = await request(app)
+      .get(`${base}/diagnostic-orders/${orderId}/report/download`)
+      .set(authHeader(patient.accessToken));
+    expect(downloadBeforeReport.status).toBe(404);
 
     const strangerSchedule = await request(app)
       .post(`${base}/diagnostic-orders/${orderId}/transition`)

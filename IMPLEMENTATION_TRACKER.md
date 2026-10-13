@@ -250,9 +250,94 @@ this contract or generate one from `openapi.json`; that choice belongs to Phase 
 
 ## Phase 14 — Flutter Mobile Application
 
-- [ ] 14.1 — Flutter project setup, API client, auth/token refresh/logout, secure token storage.
-- [ ] 14.2 — Core patient journeys: discovery, listings, booking, emergency quick actions.
-- [ ] 14.3 — Pharmacy/diagnostics/medical-records/caregiver flows; offline/retry/network-error handling.
+- [x] 14.1 — New `mobile/` Flutter project (dio, flutter_secure_storage, provider, go_router, intl,
+  url_launcher, file_picker). `ApiClient` (Dio singleton) always sends `X-Client-Platform: mobile`
+  (the Phase 13 opt-in), attaches `Authorization: Bearer` via an interceptor, and on a 401 runs a
+  single shared-`Completer` refresh-and-retry-once so concurrent 401s don't each trigger their own
+  refresh call. `SecureStorageService` wraps `flutter_secure_storage` and holds only the refresh
+  token — the access token stays in-memory in `ApiClient`, never persisted, mirroring the website's
+  `AuthContext`. `AuthProvider` (ChangeNotifier) wires `ApiClient.onRefreshNeeded`/`onUnauthorized`
+  to silent-refresh and force-logout respectively. `go_router`'s `redirect` distinguishes three route
+  classes: auth-only (login/register/forgot/reset — bounced to `/` once authenticated),
+  always-public (emergency, provider/medicine/test/camp listings and provider detail — reachable
+  either way, since an emergency screen behind a login wall defeats its purpose), and everything else
+  (protected, bounced to `/login`).
+- [x] 14.2 — Core patient journeys built and live-verified end-to-end against a real backend: provider
+  discovery by city, provider detail, and appointment slot booking (spot count correctly decremented
+  3→2 on booking, confirmed in both the detail screen and My Appointments). Emergency screen is public
+  (no auth required, per 14.1's always-public list), dials `tel:112` via `url_launcher`, and carries
+  the same red-flag/clinically-reviewed disclosure language as the website.
+- [x] 14.3 — Pharmacy (medicine search, order with delivery address, prescription upload via
+  `file_picker`), diagnostics (test search, booking with a Material date/time picker, home-collection
+  vs at-lab), health camps (search, registration), medical records (profile view/edit, documents,
+  visits), and caregiver invites (invite by email with scope selection, accept/decline, revoke) are
+  all built. Network-error handling is implemented via `ApiException.isNetworkError` +
+  `ErrorBanner.fromException` (distinct messaging/retry for a network failure vs. a server error)
+  across every screen that calls the API, following the same pattern throughout rather than
+  one-off per screen.
+
+  **Real bug found and fixed during this phase's live verification** (not mobile-specific — equally
+  affects the website, since both go through the same `toOrderView` serializer): a freshly created
+  diagnostic order's `hasReport` field read `true` immediately after creation, before any report was
+  ever uploaded, and `GET /diagnostic-orders/:id/report/download` would attempt to read a
+  nonexistent file instead of correctly 404ing. Root cause: `diagnosticOrder.model.ts` declared
+  `reportDocument` as a bare nested object (not a proper sub-schema with an explicit default), so
+  Mongoose auto-vivifies it to `{}` on every new document — which is truthy, so
+  `Boolean(order.reportDocument)` in the controller and `if (!order.reportDocument)` in the download
+  guard were both always wrong for a document that had never had a report uploaded. Fixed by giving
+  `reportDocument` a real `reportDocumentSchema` (`_id: false`, required leaf fields) with
+  `default: null` at the parent-schema level. Caught because this session's mobile verification
+  booked a *fresh* diagnostic order and visually saw "Report ready" on a `requested`-status order —
+  a check the original Phase 11 test suite never made, since its one `hasReport` assertion only
+  checked the *post-upload* value (`true`), never the pre-upload value. Added both missing
+  regression assertions to `backend/tests/diagnostics.test.ts`: `hasReport` is `false` on the order
+  returned by `POST /diagnostic-orders`, and `GET .../report/download` 404s before any report
+  exists.
+
+**Evidence:**
+- Backend: `npx vitest run` → 21 files / 85 tests passing (includes the two new diagnostics
+  regression assertions above; no test count increase since they were added to the existing
+  "uploads and downloads a report" test rather than a new one).
+- Mobile: `flutter analyze` → no issues found. `flutter test` → 1/1 passing (a widget smoke test;
+  see Known issues below for why it isn't a deeper integration test).
+- Live end-to-end verification was performed against a real backend (`mongodb-memory-server` replica
+  set + `npm run dev`) and a headless `flutter run -d web-server` instance, driven through the
+  browser-automation tool. Flutter web's CanvasKit renderer has no real DOM, so this required
+  enabling Flutter's accessibility semantics tree (`flt-semantics-placeholder` click) and interacting
+  with the resulting `flt-semantics[role="button"]` / proxy `<input>` elements directly — confirmed
+  more reliable than screenshot-coordinate clicking or the `form_input` tool (which sets a DOM
+  value Flutter's canvas renderer never observes, since only real keyboard events reach its text
+  input channel). Verified flows: register → login → logout (as two independent accounts); provider
+  search by city → detail → slot booking → appearance in My Appointments; medicine search → order
+  with delivery address → appearance in My Orders; diagnostic test search → booking with date/time
+  picker → appearance in Diagnostic Orders, including re-verifying the `hasReport` fix on a newly
+  created order after the backend fix; health camp search → registration → appearance in My Camp
+  Registrations with the capacity count correctly decremented; medical record profile edit → save →
+  reload confirming persistence of all four fields; caregiver invite → logout/login as the second
+  account → accept → read-only view of the inviting patient's profile (fields correctly disabled,
+  since only `view_profile` scope was granted, not `manage_profile`) → revoke.
+- All scratch verification infrastructure (throwaway Mongo replica set, `scratch-mobile-setup.cjs`
+  seed script, `scratch-start-mongo.cjs`, `.claude/launch.json`, the backgrounded backend dev server,
+  and the headless Flutter web server) was torn down afterward, and `.env` restored to
+  `.env.example`'s documented defaults; confirmed via `git status` that nothing scratch leaked into
+  the repository.
+
+**Known issues / deferred:** Prescription upload (`file_picker` → multipart upload) was built and
+code-reviewed against the backend contract but not live-tested through the browser-automation tool,
+since it triggers the OS's native file-picker dialog, which that tool cannot drive — this is an
+honest gap, not a fabricated pass. No real Android/iOS emulator or physical device was used in this
+session; all verification was Chrome-via-browser-automation against `flutter run -d web-server`,
+which exercises the same Dart business logic and widget tree but not platform-specific behavior
+(secure storage backend, native file picker UI, deep linking, push notifications — none of which
+this app uses yet). Device/emulator testing is explicitly Phase 15's scope, not pulled forward here.
+The `flutter test` suite is a single smoke test, not a widget-test suite per screen — building one
+turned out to be a dead end in this session (`pumpAndSettle` never resolves while a
+`CircularProgressIndicator` animates, and `tester.pump(duration)`'s fake clock doesn't reliably await
+real async I/O in a widget-test sandbox); real coverage instead came from the live end-to-end
+verification above, which is thorough but not repeatable/CI-runnable the way widget or integration
+tests would be. Provider-dashboard and admin screens are deliberately not part of the mobile app — a
+scope decision consistent with the master prompt's own Phase 14.2/14.3 wording ("patient journeys"),
+not an oversight.
 
 ## Phase 15 — Mobile Release and Final Validation
 

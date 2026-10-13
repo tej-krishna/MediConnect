@@ -33,6 +33,16 @@ const statusHistoryEntrySchema = new Schema(
   { _id: false },
 );
 
+const reportDocumentSchema = new Schema(
+  {
+    storageKey: { type: String, required: true },
+    originalFilename: { type: String, required: true },
+    mimeType: { type: String, required: true },
+    uploadedAt: { type: Date, required: true },
+  },
+  { _id: false },
+);
+
 const diagnosticOrderSchema = new Schema(
   {
     patientId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -46,12 +56,7 @@ const diagnosticOrderSchema = new Schema(
     assignedCollector: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     status: { type: String, enum: DIAGNOSTIC_ORDER_STATUSES, default: 'requested', index: true },
     statusHistory: { type: [statusHistoryEntrySchema], default: [] },
-    reportDocument: {
-      storageKey: { type: String },
-      originalFilename: { type: String },
-      mimeType: { type: String },
-      uploadedAt: { type: Date },
-    },
+    reportDocument: { type: reportDocumentSchema, default: null },
   },
   { timestamps: true },
 );

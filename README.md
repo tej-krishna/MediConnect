@@ -70,12 +70,46 @@ npm run build     # production build
 npm run preview   # preview the production build locally
 ```
 
+## Mobile app setup
+
+Requires the Flutter SDK (stable channel). The mobile app talks to the same backend as the website —
+start `backend` first.
+
+```bash
+cd mobile
+flutter pub get
+flutter run                    # launches on a connected device/emulator, or pass -d <device>
+flutter run -d web-server --web-port 5190   # headless Chrome-reachable build, useful for quick checks
+```
+
+By default `ApiConfig.baseUrl` targets `http://10.0.2.2:5000/api/v1` on the Android emulator (its
+alias for the host machine's `localhost`) and `http://localhost:5000/api/v1` everywhere else
+(iOS simulator, web, desktop). Override it for a physical device or a non-default backend port:
+
+```bash
+flutter run --dart-define=API_BASE_URL=http://192.168.1.50:5000/api/v1
+```
+
+Other mobile commands:
+
+```bash
+flutter analyze   # static analysis
+flutter test      # widget tests
+```
+
+The mobile app covers patient-facing journeys only (discovery, booking, pharmacy, diagnostics,
+medical records, caregiver access, emergency). Provider-dashboard and admin screens remain web-only —
+see [ARCHITECTURE.md](ARCHITECTURE.md)'s Phase 14 notes for why.
+
 ## Environment files
 
 Each package has its own `.env.example`:
 
 - `backend/.env.example` — port, MongoDB URI, JWT secrets, CORS origin, storage paths, rate limits.
 - `frontend/.env.example` — the backend API base URL.
+- `mobile/` has no `.env` file — its one configurable value (`API_BASE_URL`) is set via
+  `--dart-define` at build/run time instead, since that's Flutter's standard mechanism and a mobile
+  bundle has no server-side process environment to read a `.env` file from.
 
 Copy each to `.env` in the same folder and fill in real values before running. Never commit `.env`
 files — they are already excluded via `.gitignore`.

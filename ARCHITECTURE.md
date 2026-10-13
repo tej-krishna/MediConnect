@@ -612,3 +612,56 @@ built versus planned. Entries are added here at the end of each phase, not in ad
   Recognizing that distinction and fixing only the genuine gap, rather than paginating everything for
   uniformity, matches this project's standing practice of not solving a problem that doesn't exist
   alongside the one that does.
+
+### Phase 14 — Flutter mobile application
+
+- **One access token in memory, one refresh token in secure storage — the native-app analogue of the
+  website's cookie split, not a weaker version of it.** The website keeps the refresh token in an
+  HttpOnly cookie (unreachable from JS, so an XSS can't exfiltrate it) and the access token in memory
+  only. A native app has no cookie jar and no equivalent "unreachable from the app's own code"
+  boundary, but `flutter_secure_storage` (Android Keystore / iOS Keychain-backed) is the closest
+  native analogue, so that's where the refresh token lives — and only the refresh token. The access
+  token stays in-memory in `ApiClient`, exactly like the website's `AuthContext`, so a cold app start
+  always has to prove itself via the stored refresh token rather than resuming a long-lived access
+  token from disk.
+- **A single shared `Completer` serializes concurrent 401-triggered refreshes.** If three in-flight
+  requests all 401 at once (a realistic case — a screen that fires off several parallel API calls on
+  load after a token just expired), naively refreshing once per 401 would race three refresh calls
+  against the same refresh token, and the backend's rotation-with-reuse-detection (Phase 2) would
+  correctly treat the second and third as reuse of an already-rotated token and revoke the whole
+  chain, forcing an unnecessary logout. `ApiClient` instead has every concurrent 401 await the *same*
+  in-flight refresh `Completer`, so only one refresh call is ever made per expiry, and all three
+  original requests retry once the single refresh resolves.
+- **`X-Client-Platform: mobile` is the only mobile-specific thing in the HTTP layer.** Everything else
+  — pagination, error shapes, validation, role checks — is identical to what the website already
+  calls, by design: Phase 13 built the contract to be platform-neutral specifically so the mobile app
+  wouldn't need its own parallel API surface. The one header exists because the token-delivery
+  mechanism genuinely differs (body vs. cookie, per Phase 13's own decision above), not because
+  mobile needed different business logic anywhere.
+- **Route protection mirrors the website's `ProtectedRoute`, with the same three-way split.**
+  `go_router`'s `redirect` callback encodes exactly the website's distinction: pages that make no
+  sense once authenticated (login/register — bounce to home), pages that must work regardless of
+  auth state (discovery/browsing and, deliberately, `/emergency` — an emergency screen behind a login
+  wall defeats the point of it), and everything else (protected, bounce to login). Keeping this a
+  three-way classification instead of a simple public/private boolean is what makes `/emergency`
+  correct: it needed to be reachable *both* logged in and logged out, which an auth-only or
+  protected-only bucket can't express.
+- **The mobile app is patient journeys only — provider dashboards and admin screens stay web-only, on
+  purpose.** The master prompt scoped Phase 14 to "core patient journeys" and
+  "pharmacy/diagnostics/medical-records/caregiver flows," language that describes what a patient does,
+  not what a provider-owner or platform admin does. Nothing about the backend contract prevents a
+  provider or admin mobile client from existing later — the same `X-Client-Platform` mechanism would
+  cover it — but building one wasn't asked for here, and doing it anyway would have doubled this
+  phase's scope for a user base (clinic staff, platform admins) far less likely to need a phone-first
+  experience than a patient booking an appointment or finding a pharmacy.
+- **A Mongoose single-nested-object default bug, not a mobile-specific one, surfaced through mobile's
+  live verification.** `diagnosticOrder.model.ts` declared `reportDocument` as a bare nested object
+  rather than a proper sub-schema with an explicit default, so Mongoose auto-vivified it to `{}` on
+  every new document — truthy, so `hasReport` read `true` on orders that had never had a report
+  uploaded, and the download-report guard's `if (!order.reportDocument)` check never fired either.
+  This equally affected the website; it surfaced here because this phase's live verification booked a
+  *fresh* order and happened to look at it before any report existed, which the original test suite's
+  one `hasReport` assertion (post-upload only) never did. Fixed with a real `reportDocumentSchema`
+  (`_id: false`) and `default: null`, which is the correct general fix for this Mongoose behavior —
+  worth remembering for any future nested-object field that's meant to be optional/nullable rather
+  than always-present.
