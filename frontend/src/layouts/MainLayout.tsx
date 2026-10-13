@@ -15,6 +15,9 @@ export function MainLayout() {
             MediConnect
           </Link>
           <nav className="site-nav">
+            <Link to="/emergency" className="site-nav__emergency">
+              Emergency
+            </Link>
             <NavLink to="/providers" className="site-nav__link">
               Find Care
             </NavLink>

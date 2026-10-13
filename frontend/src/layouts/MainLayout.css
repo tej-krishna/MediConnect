@@ -38,6 +38,20 @@
   font-size: 0.95rem;
 }
 .site-nav__link:hover { color: var(--color-primary-dark); text-decoration: none; }
+
+.site-nav__emergency {
+  background: var(--color-emergency);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 6px 14px;
+  border-radius: 999px;
+}
+.site-nav__emergency:hover {
+  background: #b91c1c;
+  color: #fff;
+  text-decoration: none;
+}
 .site-nav__link.active { color: var(--color-primary-dark); }
 
 .site-main {

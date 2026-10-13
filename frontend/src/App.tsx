@@ -22,6 +22,8 @@ import { OrderTestPage } from './pages/OrderTestPage';
 import { MyDiagnosticOrdersPage } from './pages/MyDiagnosticOrdersPage';
 import { HealthCampSearchPage } from './pages/HealthCampSearchPage';
 import { MyCampRegistrationsPage } from './pages/MyCampRegistrationsPage';
+import { EmergencyPage } from './pages/EmergencyPage';
+import { AdminEmergencyGuidesPage } from './pages/AdminEmergencyGuidesPage';
 import { ContactPage } from './pages/ContactPage';
 import { HelpPage } from './pages/HelpPage';
 import { PrivacyPage } from './pages/PrivacyPage';
@@ -45,6 +47,7 @@ function App() {
             <Route path="medicines/:id/alternatives" element={<MedicineAlternativesPage />} />
             <Route path="diagnostic-tests" element={<DiagnosticTestSearchPage />} />
             <Route path="health-camps" element={<HealthCampSearchPage />} />
+            <Route path="emergency" element={<EmergencyPage />} />
             <Route path="contact" element={<ContactPage />} />
             <Route path="help" element={<HelpPage />} />
             <Route path="privacy" element={<PrivacyPage />} />
@@ -59,6 +62,7 @@ function App() {
               <Route path="diagnostic-tests/:id/order" element={<OrderTestPage />} />
               <Route path="diagnostic-orders" element={<MyDiagnosticOrdersPage />} />
               <Route path="my-camps" element={<MyCampRegistrationsPage />} />
+              <Route path="admin/emergency-guides" element={<AdminEmergencyGuidesPage />} />
             </Route>
             <Route path="*" element={<NotFoundPage />} />
           </Route>

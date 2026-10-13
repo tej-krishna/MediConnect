@@ -79,6 +79,15 @@ export function AccountPage() {
           Register as a provider
         </Link>
       </div>
+
+      {user.roles.includes('super_admin') && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <h3>Admin</h3>
+          <Link to="/admin/emergency-guides" className="btn btn-secondary">
+            Manage emergency guidance
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

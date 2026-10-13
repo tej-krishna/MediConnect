@@ -6,8 +6,8 @@ A task is marked `[x]` only after its code, tests, and manual verification all p
 `ARCHITECTURE.md` for the decisions behind these choices and `README.md` for how to run each
 package.
 
-**Current phase: Phase 8 — Emergency Support and Smart Care Routing**
-**Next task: 8.1 — Emergency-access UI: nearest verified providers, ambulance contacts, one-tap call/directions**
+**Current phase: Phase 9 — Medical Records and Caregiver Access**
+**Next task: 9.1 — Patient medical history, allergies, medications, prescriptions, reports, visit history**
 
 ---
 
@@ -125,9 +125,15 @@ package.
 
 ## Phase 8 — Emergency Support and Smart Care Routing
 
-- [ ] 8.1 — Emergency-access UI: nearest verified providers, ambulance contacts, one-tap call/directions.
-- [ ] 8.2 — Fee estimates, opening status, availability-freshness indicators; emergency escalation when local providers are unavailable.
-- [ ] 8.3 — Clinician-reviewed symptom guidance with safe red-flag escalation (no self-diagnosis, no fabricated dispatch/tracking).
+- [x] 8.1 — Public `/emergency` page (no login required — an emergency shouldn't have a login wall) with a prominent one-tap call to India's unified emergency number (112), styled distinctly in the nav as a red pill separated from routine-appointment links. Nearby ambulance/hospital/clinic providers are found by merging three Phase 4 `GET /providers/search` calls (one per `providerType`) and sorting the combined results by distance client-side — reusing the existing verified-only, geo-sorted discovery API rather than building a parallel one.
+- [x] 8.2 — Fee/opening-status/freshness indicators are already real Phase 4/5 fields (`consultationFee`, `operatingHoursNote`, live `distanceMeters`) surfaced on the merged provider list — no new backend needed here, just reuse. If geolocation is denied/unavailable, or zero providers are found nearby, the page shows an explicit "call now, don't wait while searching" escalation message rather than a blank or ambiguous empty state — this is the literal implementation of "must not delay emergency care while searching for a cheaper provider."
+- [x] 8.3 — New `emergency` module (`emergencyGuide.model.ts`/`.service.ts`): `super_admin`-only authored, publicly-readable red-flag symptom guides. Deliberately **not** a symptom checker — there's no scoring, weighting, or diagnosis logic; checking *any* listed red-flag symptom immediately shows an unmissable "call now" banner, full stop. Every guide carries a `clinicallyReviewed` boolean (default `false`) that only an admin can flip, and the public page visibly discloses "General guidance, not yet confirmed by a clinical reviewer" on any guide where it's false — the honest alternative to claiming content is clinically reviewed when no clinician has actually reviewed it. No fabricated dispatch, ETA, or live tracking anywhere on this page — only `tel:` links and real distances.
+
+**Evidence:**
+- Backend: `npm run typecheck`, `npm run build`, `npm run lint` all pass; `npx vitest run` → 13 files / 52 tests passing. New: `tests/emergency.test.ts` covering public unauthenticated read access, that a deactivated guide disappears from the public list, non-admins forbidden from every admin guide-management endpoint, and the clinically-reviewed flag toggling correctly.
+- Manual browser verification: loaded `/emergency` with **zero authentication** and confirmed the call button, disclaimer, and (since this environment can't grant real browser geolocation permission) the correctly-worded "couldn't get your location, call now" fallback all render. Created a real guide via the API as an admin and confirmed it appears on the fully public page with the honest not-yet-reviewed disclaimer; checking a red-flag symptom checkbox immediately surfaced the "Based on what you selected, call 112 now" banner. Created and approved a real `ambulance_provider`, then exercised the exact three-endpoint merge-and-sort fetch the page performs (via injected JS calling the same API from the browser) and confirmed it correctly found and distance-sorted the real provider — geolocation permission itself isn't grantable in this tool, so this verifies the one genuinely new piece of client logic (the merge) against live data rather than only unit-level.
+
+**Known issues / deferred:** Geolocation-gated behavior on `/emergency` could not be visually exercised end-to-end in this environment (no way to grant mock browser geolocation permission here); the underlying fetch/merge/sort logic was verified directly instead, and the geolocation hook itself was already proven in Phase 4. No content has yet been marked `clinicallyReviewed: true` — that requires an actual qualified clinician in the loop, which is explicitly outside what this implementation can claim to provide; the admin UI exists specifically so that step can happen later without a code change.
 
 ## Phase 9 — Medical Records and Caregiver Access
 

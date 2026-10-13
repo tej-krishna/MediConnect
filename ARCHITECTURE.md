@@ -324,3 +324,34 @@ built versus planned. Entries are added here at the end of each phase, not in ad
   itself worth noting: a purity/impure-call lint rule flagged a real product correctness issue, not
   just a style nit. Fixed by giving the lab a `datetime-local` input per order, falling back to the
   patient's own originally-requested time (not "now") when left blank.
+
+### Phase 8 — Emergency support
+
+- **No new discovery backend — the emergency page is a client-side view over Phase 4's existing
+  `GET /providers/search`.** Finding "nearby ambulances, hospitals, and clinics" is the same
+  verified-only, geo-sorted query Find Care already does, just called three times (once per relevant
+  `providerType`) and merged/sorted client-side. A dedicated `/emergency/nearby` endpoint would have
+  duplicated that logic for no real benefit — the only thing actually new in this phase is *which*
+  provider types to show together and how urgently to frame them, which is a page-level concern, not
+  a data-access one.
+- **Red-flag guidance is a checklist with one rule, not a symptom checker.** There is deliberately no
+  scoring, no "mild/moderate/severe" weighting, and no combination logic — checking *any* symptom in
+  *any* guide shows the same unconditional "call now" banner. The brief is explicit that the system
+  "must not independently diagnose patients or guarantee a minor symptom is harmless," and the surest
+  way to honor that isn't a careful diagnosis algorithm, it's not having one: the UI's only job is
+  recognizing "this might be serious" and getting out of the way.
+- **`clinicallyReviewed` defaults to `false` and nothing in this codebase ever sets it to `true`
+  automatically.** This is the honest resolution of the brief's "configurable symptom guidance
+  reviewed by qualified clinical professionals": an AI assistant can build the *configuration* system
+  (the admin CRUD, the public read API, the per-guide flag) but cannot make the review itself true by
+  writing code. The flag exists so a real clinician reviewing this content later has somewhere to
+  record that they did, and the public page visibly discloses the unreviewed state rather than
+  presenting draft content as though it were vetted.
+- **The emergency page has no `ProtectedRoute` wrapper, on purpose** — it's the one page in the
+  application explicitly designed to work for a signed-out visitor mid-emergency. Every other
+  patient-facing page in the app that touches personal data or a transaction requires login; this one
+  doesn't, because requiring an account first would work directly against the page's purpose.
+- **No fabricated dispatch, ETA, or live tracking anywhere.** Every action on this page is either a
+  `tel:` link (real phone call) or a link into the same discovery/booking flows the rest of the site
+  already uses — there is no "ambulance is 4 minutes away" style UI, because the system has no actual
+  dispatch integration and would be lying if it displayed one.

@@ -1,0 +1,82 @@
+.emergency-page__call-section {
+  background: var(--color-emergency);
+  color: #fff;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.emergency-page__call-section h1 {
+  color: #fff;
+  margin-bottom: 16px;
+}
+
+.emergency-call-button {
+  display: inline-block;
+  background: #fff;
+  color: var(--color-emergency);
+  font-size: 1.4rem;
+  font-weight: 700;
+  padding: 16px 40px;
+  border-radius: 999px;
+  text-decoration: none;
+}
+.emergency-call-button:hover {
+  text-decoration: none;
+  background: #f1f1f1;
+}
+
+.emergency-page__disclaimer {
+  margin: 16px auto 0;
+  max-width: 560px;
+  font-size: 0.9rem;
+  opacity: 0.95;
+}
+
+.emergency-page__section {
+  margin-top: 20px;
+  text-align: left;
+}
+
+.emergency-page__urgent-banner {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.emergency-page__urgent-banner a {
+  color: var(--color-danger);
+  text-decoration: underline;
+}
+
+.emergency-page__guide {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+.emergency-page__guide:first-of-type {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 8px;
+}
+.emergency-page__guide ul {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+}
+.emergency-page__guide li {
+  padding: 4px 0;
+}
+
+.emergency-provider-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.emergency-provider-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}
