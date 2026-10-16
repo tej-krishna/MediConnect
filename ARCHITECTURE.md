@@ -1,6 +1,6 @@
 # MediConnect Architecture
 
-## Mission
+## Mission to have
 
 Help patients find the right healthcare provider, at the right time, at a reasonable cost, with
 minimal search effort — without unnecessary treatment expense, and without exposing patients to
