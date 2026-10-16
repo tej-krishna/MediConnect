@@ -3,8 +3,15 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../app/AuthContext';
 import { ApiError } from '../services/apiClient';
 import { GoogleAuthButton } from '../components/GoogleAuthButton';
-import { AuthBrandPanel } from '../components/AuthBrandPanel';
+import { CrossIcon, DropIcon, PillIcon, PulseIcon, StethoscopeIcon, SyringeIcon } from '../components/MedicalIcons';
 import './AuthForm.css';
+import './LoginPage.css';
+
+const FEATURES = [
+  'Every provider is manually verified before listing',
+  'Fees and availability shown before you book',
+  'Your medical records stay private — even from admins',
+];
 
 const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
   google_auth_cancelled: 'Google sign-in was cancelled.',
@@ -46,10 +53,20 @@ export function LoginPage() {
   }
 
   return (
-    <div className="auth-split">
-      <AuthBrandPanel />
-      <div className="auth-split__form">
-      <div className="card auth-card">
+    <div className="login-canvas">
+      <div className="login-canvas__decor" aria-hidden="true">
+        <div className="feature-float feature-float--1">{FEATURES[0]}</div>
+        <div className="feature-float feature-float--2">{FEATURES[1]}</div>
+        <div className="feature-float feature-float--3">{FEATURES[2]}</div>
+        <span className="icon-float icon-float--1"><CrossIcon /></span>
+        <span className="icon-float icon-float--2"><StethoscopeIcon /></span>
+        <span className="icon-float icon-float--3"><PulseIcon /></span>
+        <span className="icon-float icon-float--4"><PillIcon /></span>
+        <span className="icon-float icon-float--5"><DropIcon /></span>
+        <span className="icon-float icon-float--6"><SyringeIcon /></span>
+      </div>
+
+      <div className="card auth-card login-canvas__card">
         <h1>Log in</h1>
         {error && <div className="alert alert-error">{error}</div>}
         <form onSubmit={handleSubmit}>
@@ -87,7 +104,6 @@ export function LoginPage() {
         <p className="auth-switch">
           Don't have an account? <Link to="/register">Sign up</Link>
         </p>
-      </div>
       </div>
     </div>
   );
