@@ -14,8 +14,7 @@ export const locationSchema = z.object({
   lng: z.coerce.number().min(-180).max(180),
 });
 
-export const createApplicationSchema = z.object({
-  providerType: z.enum(PROVIDER_TYPES),
+const baseApplicationFields = {
   organizationName: z.string().trim().min(2).max(160),
   registrationNumber: z.string().trim().min(3).max(60),
   issuingAuthority: z.string().trim().min(2).max(160),
@@ -25,7 +24,99 @@ export const createApplicationSchema = z.object({
   location: locationSchema.optional(),
   consultationFee: z.coerce.number().min(0).max(1_000_000).optional(),
   operatingHoursNote: z.string().trim().max(200).optional(),
-});
+};
+
+/**
+ * Each provider type collects a different, small set of extra fields relevant to it (a doctor's
+ * specialization vs. a hospital's bed count vs. an NGO's registration type) — stored together as
+ * one `typeDetails` object rather than as a pile of top-level fields that are only ever set for
+ * one type. The discriminated union means each branch only accepts (and requires) the shape that
+ * actually applies to its providerType; this is also what drives the OpenAPI spec generation.
+ */
+export const createApplicationSchema = z.discriminatedUnion('providerType', [
+  z.object({
+    providerType: z.literal('doctor'),
+    ...baseApplicationFields,
+    typeDetails: z.object({
+      specialization: z.string().trim().min(2).max(100),
+      qualification: z.string().trim().min(2).max(150),
+      yearsOfExperience: z.coerce.number().int().min(0).max(70),
+    }),
+  }),
+  z.object({
+    providerType: z.literal('hospital'),
+    ...baseApplicationFields,
+    typeDetails: z.object({
+      bedCount: z.coerce.number().int().min(1).max(10_000),
+      hospitalType: z.enum(['general', 'multi_specialty', 'specialty']),
+      emergencyServicesAvailable: z.coerce.boolean(),
+    }),
+  }),
+  z.object({
+    providerType: z.literal('clinic'),
+    ...baseApplicationFields,
+    typeDetails: z.object({
+      specialties: z.string().trim().min(2).max(200),
+      clinicType: z.enum(['general', 'specialty']),
+    }),
+  }),
+  z.object({
+    providerType: z.literal('pharmacy'),
+    ...baseApplicationFields,
+    typeDetails: z.object({
+      has24x7Service: z.coerce.boolean(),
+      gstin: z.string().trim().max(20).optional(),
+    }),
+  }),
+  z.object({
+    providerType: z.literal('diagnostic_lab'),
+    ...baseApplicationFields,
+    typeDetails: z.object({
+      nablAccreditationNumber: z.string().trim().max(60).optional(),
+      homeCollectionAvailable: z.coerce.boolean(),
+    }),
+  }),
+  z.object({
+    providerType: z.literal('ambulance_provider'),
+    ...baseApplicationFields,
+    typeDetails: z.object({
+      vehicleCount: z.coerce.number().int().min(1).max(1_000),
+      vehicleType: z.enum(['basic_life_support', 'advanced_life_support']),
+    }),
+  }),
+  z.object({
+    providerType: z.literal('equipment_provider'),
+    ...baseApplicationFields,
+    typeDetails: z.object({
+      equipmentCategories: z.string().trim().min(2).max(200),
+      serviceType: z.enum(['rental', 'sale', 'both']),
+    }),
+  }),
+  z.object({
+    providerType: z.literal('mobile_van_operator'),
+    ...baseApplicationFields,
+    typeDetails: z.object({
+      vanCount: z.coerce.number().int().min(1).max(500),
+      coverageAreas: z.string().trim().min(2).max(300),
+    }),
+  }),
+  z.object({
+    providerType: z.literal('ngo_coordinator'),
+    ...baseApplicationFields,
+    typeDetails: z.object({
+      ngoRegistrationType: z.enum(['trust', 'society', 'section8']),
+      focusAreas: z.string().trim().min(2).max(300),
+    }),
+  }),
+  z.object({
+    providerType: z.literal('insurance_provider'),
+    ...baseApplicationFields,
+    typeDetails: z.object({
+      irdaiLicenseNumber: z.string().trim().min(2).max(60),
+      insuranceTypesOffered: z.string().trim().min(2).max(300),
+    }),
+  }),
+]);
 
 export const updateListingInfoSchema = z.object({
   location: locationSchema.optional(),

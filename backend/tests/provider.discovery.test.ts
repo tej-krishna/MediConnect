@@ -4,7 +4,14 @@ import { connectDatabase, disconnectDatabase } from '../src/config/db';
 import { createApp } from '../src/app';
 import { env } from '../src/config/env';
 import { ProviderApplication } from '../src/modules/providers/provider.model';
-import { registerAndLogin, registerAdminAndLogin, authHeader, createApprovedProvider, uniqueEmail } from './helpers';
+import {
+  registerAndLogin,
+  registerAdminAndLogin,
+  authHeader,
+  createApprovedProvider,
+  uniqueEmail,
+  sampleTypeDetailsFor,
+} from './helpers';
 
 const base = env.API_PREFIX;
 
@@ -24,6 +31,7 @@ function payloadFor(type: string, location: { lat: number; lng: number }, overri
     location,
     consultationFee: 300,
     operatingHoursNote: 'Mon-Sat 9am-8pm',
+    typeDetails: sampleTypeDetailsFor(type),
     ...overrides,
   };
 }

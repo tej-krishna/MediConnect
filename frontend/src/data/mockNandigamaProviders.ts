@@ -28,6 +28,7 @@ export const MOCK_NANDIGAMA_PROVIDERS: PublicProvider[] = [
     operatingHoursNote: 'Open 24 hours (Emergency)',
     verifiedAt: '2026-01-15T00:00:00.000Z',
     isCurrentlyAvailable: true,
+    typeDetails: {},
   },
   {
     id: 'mock-hospital-2',
@@ -40,6 +41,7 @@ export const MOCK_NANDIGAMA_PROVIDERS: PublicProvider[] = [
     operatingHoursNote: 'Mon–Sat, 9:00 AM – 9:00 PM',
     verifiedAt: '2026-02-02T00:00:00.000Z',
     isCurrentlyAvailable: true,
+    typeDetails: {},
   },
   {
     id: 'mock-hospital-3',
@@ -52,6 +54,7 @@ export const MOCK_NANDIGAMA_PROVIDERS: PublicProvider[] = [
     operatingHoursNote: 'Open 24 hours',
     verifiedAt: '2026-01-28T00:00:00.000Z',
     isCurrentlyAvailable: false,
+    typeDetails: {},
   },
   {
     id: 'mock-clinic-1',
@@ -64,6 +67,7 @@ export const MOCK_NANDIGAMA_PROVIDERS: PublicProvider[] = [
     operatingHoursNote: 'Mon–Sat, 10:00 AM – 1:00 PM, 5:00 PM – 8:00 PM',
     verifiedAt: '2026-02-10T00:00:00.000Z',
     isCurrentlyAvailable: true,
+    typeDetails: {},
   },
   {
     id: 'mock-clinic-2',
@@ -76,6 +80,7 @@ export const MOCK_NANDIGAMA_PROVIDERS: PublicProvider[] = [
     operatingHoursNote: 'Mon–Sat, 11:00 AM – 2:00 PM, 6:00 PM – 9:00 PM',
     verifiedAt: '2026-01-20T00:00:00.000Z',
     isCurrentlyAvailable: true,
+    typeDetails: {},
   },
   {
     id: 'mock-clinic-3',
@@ -88,6 +93,7 @@ export const MOCK_NANDIGAMA_PROVIDERS: PublicProvider[] = [
     operatingHoursNote: 'Mon–Sun, 9:30 AM – 1:30 PM',
     verifiedAt: '2026-02-18T00:00:00.000Z',
     isCurrentlyAvailable: true,
+    typeDetails: {},
   },
   {
     id: 'mock-pharmacy-1',
@@ -100,6 +106,7 @@ export const MOCK_NANDIGAMA_PROVIDERS: PublicProvider[] = [
     operatingHoursNote: 'Daily, 8:00 AM – 10:00 PM',
     verifiedAt: '2026-01-10T00:00:00.000Z',
     isCurrentlyAvailable: true,
+    typeDetails: {},
   },
   {
     id: 'mock-pharmacy-2',
@@ -112,6 +119,7 @@ export const MOCK_NANDIGAMA_PROVIDERS: PublicProvider[] = [
     operatingHoursNote: 'Daily, 7:00 AM – 11:00 PM',
     verifiedAt: '2026-02-05T00:00:00.000Z',
     isCurrentlyAvailable: true,
+    typeDetails: {},
   },
   {
     id: 'mock-pharmacy-3',
@@ -124,6 +132,7 @@ export const MOCK_NANDIGAMA_PROVIDERS: PublicProvider[] = [
     operatingHoursNote: 'Daily, 8:00 AM – 10:30 PM',
     verifiedAt: '2026-01-25T00:00:00.000Z',
     isCurrentlyAvailable: true,
+    typeDetails: {},
   },
   {
     id: 'mock-diagnostic-1',
@@ -136,5 +145,6 @@ export const MOCK_NANDIGAMA_PROVIDERS: PublicProvider[] = [
     operatingHoursNote: 'Mon–Sat, 7:00 AM – 7:00 PM',
     verifiedAt: '2026-02-12T00:00:00.000Z',
     isCurrentlyAvailable: true,
+    typeDetails: {},
   },
 ];

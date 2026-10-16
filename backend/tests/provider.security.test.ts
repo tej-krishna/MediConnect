@@ -3,19 +3,21 @@ import request from 'supertest';
 import { connectDatabase, disconnectDatabase } from '../src/config/db';
 import { createApp } from '../src/app';
 import { env } from '../src/config/env';
-import { registerAndLogin, registerAdminAndLogin, authHeader, uniqueEmail } from './helpers';
+import { registerAndLogin, registerAdminAndLogin, authHeader, uniqueEmail, sampleTypeDetailsFor } from './helpers';
 
 const base = env.API_PREFIX;
 
 function samplePayload(overrides: Partial<Record<string, unknown>> = {}) {
+  const providerType = (overrides.providerType as string) ?? 'pharmacy';
   return {
-    providerType: 'pharmacy',
+    providerType,
     organizationName: 'City Pharmacy',
     registrationNumber: `DL-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     issuingAuthority: 'State Drug Control Department',
     contactPhone: `9${Math.floor(100000000 + Math.random() * 899999999)}`,
     contactEmail: uniqueEmail('pharmacy-contact'),
     address: { line1: '5 Market St', city: 'Nashik', state: 'Maharashtra', postalCode: '422001' },
+    typeDetails: sampleTypeDetailsFor(providerType),
     ...overrides,
   };
 }

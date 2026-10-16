@@ -4,7 +4,14 @@ import { connectDatabase, disconnectDatabase } from '../src/config/db';
 import { createApp } from '../src/app';
 import { env } from '../src/config/env';
 import { MedicineItem } from '../src/modules/pharmacy/medicine.model';
-import { registerAndLogin, registerAdminAndLogin, authHeader, createApprovedProvider, uniqueEmail } from './helpers';
+import {
+  registerAndLogin,
+  registerAdminAndLogin,
+  authHeader,
+  createApprovedProvider,
+  uniqueEmail,
+  sampleTypeDetailsFor,
+} from './helpers';
 
 const base = env.API_PREFIX;
 
@@ -17,6 +24,7 @@ function pharmacyPayload(overrides: Partial<Record<string, unknown>> = {}) {
     contactPhone: '9876500000',
     contactEmail: uniqueEmail('pharmacy-contact'),
     address: { line1: '1 Main St', city: 'Pune', state: 'Maharashtra', postalCode: '411001' },
+    typeDetails: sampleTypeDetailsFor('pharmacy'),
     ...overrides,
   };
 }

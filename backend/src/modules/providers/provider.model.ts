@@ -60,6 +60,11 @@ const providerApplicationSchema = new Schema(
     consultationFee: { type: Number, default: null, min: 0 },
     operatingHoursNote: { type: String, default: null, trim: true, maxlength: 200 },
     isCurrentlyAvailable: { type: Boolean, default: null },
+    // Shape varies by providerType (see provider.validation.ts's discriminated union) — a doctor's
+    // specialization, a hospital's bed count, an NGO's registration type, etc. Stored loosely since
+    // Mongoose has no first-class polymorphic-by-sibling-field embedding; the zod schema at the API
+    // boundary is what actually enforces the right shape for each type.
+    typeDetails: { type: Schema.Types.Mixed, default: {} },
     documents: { type: [documentSchema], default: [] },
     status: { type: String, enum: APPLICATION_STATUSES, default: 'draft', index: true },
     statusHistory: { type: [statusHistoryEntrySchema], default: [] },
@@ -103,6 +108,7 @@ export interface ProviderApplicationAttrs {
   consultationFee: number | null;
   operatingHoursNote: string | null;
   isCurrentlyAvailable: boolean | null;
+  typeDetails: Record<string, unknown>;
   documents: Types.DocumentArray<ProviderDocumentSubdoc>;
   status: string;
   statusHistory: { status: string; changedAt: Date; changedBy: Types.ObjectId | null; reason: string | null }[];

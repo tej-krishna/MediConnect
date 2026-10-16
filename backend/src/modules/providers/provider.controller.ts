@@ -24,6 +24,7 @@ function toApplicationView(app: Awaited<ReturnType<typeof providerService.getApp
     consultationFee: app.consultationFee,
     operatingHoursNote: app.operatingHoursNote,
     isCurrentlyAvailable: app.isCurrentlyAvailable,
+    typeDetails: app.typeDetails,
     documents: app.documents.map((doc) => ({
       id: doc._id.toString(),
       documentType: doc.documentType,
@@ -65,6 +66,7 @@ function toPublicListing(app: {
   operatingHoursNote: string | null;
   verifiedAt: Date | null;
   isCurrentlyAvailable?: boolean | null;
+  typeDetails?: Record<string, unknown>;
   distanceMeters?: number;
 }) {
   return {
@@ -78,6 +80,7 @@ function toPublicListing(app: {
     operatingHoursNote: app.operatingHoursNote,
     verifiedAt: app.verifiedAt,
     isCurrentlyAvailable: app.isCurrentlyAvailable ?? null,
+    typeDetails: app.typeDetails ?? {},
     ...(app.distanceMeters !== undefined ? { distanceMeters: Math.round(app.distanceMeters) } : {}),
   };
 }

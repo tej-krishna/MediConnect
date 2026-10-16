@@ -4,19 +4,21 @@ import { connectDatabase, disconnectDatabase } from '../src/config/db';
 import { createApp } from '../src/app';
 import { env } from '../src/config/env';
 import { User } from '../src/modules/users/user.model';
-import { registerAndLogin, registerAdminAndLogin, authHeader, uniqueEmail } from './helpers';
+import { registerAndLogin, registerAdminAndLogin, authHeader, uniqueEmail, sampleTypeDetailsFor } from './helpers';
 
 const base = env.API_PREFIX;
 
 function samplePayload(overrides: Partial<Record<string, unknown>> = {}) {
+  const providerType = (overrides.providerType as string) ?? 'doctor';
   return {
-    providerType: 'doctor',
+    providerType,
     organizationName: 'Dr. Meera Clinic',
     registrationNumber: `MCI-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     issuingAuthority: 'State Medical Council',
     contactPhone: '9876500001',
     contactEmail: uniqueEmail('provider-contact'),
     address: { line1: '12 MG Road', city: 'Pune', state: 'Maharashtra', postalCode: '411001' },
+    typeDetails: sampleTypeDetailsFor(providerType),
     ...overrides,
   };
 }

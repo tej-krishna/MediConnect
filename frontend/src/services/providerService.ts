@@ -38,6 +38,7 @@ export interface CreateApplicationInput {
   contactEmail: string;
   address: Address;
   location?: LatLng;
+  typeDetails: Record<string, unknown>;
 }
 
 export async function createApplication(input: CreateApplicationInput): Promise<OwnerProviderApplication> {

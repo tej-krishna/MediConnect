@@ -4,7 +4,14 @@ import { connectDatabase, disconnectDatabase } from '../src/config/db';
 import { createApp } from '../src/app';
 import { env } from '../src/config/env';
 import { HealthCamp } from '../src/modules/diagnostics/healthCamp.model';
-import { registerAndLogin, registerAdminAndLogin, authHeader, createApprovedProvider, uniqueEmail } from './helpers';
+import {
+  registerAndLogin,
+  registerAdminAndLogin,
+  authHeader,
+  createApprovedProvider,
+  uniqueEmail,
+  sampleTypeDetailsFor,
+} from './helpers';
 
 const base = env.API_PREFIX;
 
@@ -17,6 +24,7 @@ function labPayload(overrides: Partial<Record<string, unknown>> = {}) {
     contactPhone: '9876500000',
     contactEmail: uniqueEmail('lab-contact'),
     address: { line1: '1 Main St', city: 'Pune', state: 'Maharashtra', postalCode: '411001' },
+    typeDetails: sampleTypeDetailsFor('diagnostic_lab'),
     ...overrides,
   };
 }
@@ -30,6 +38,7 @@ function vanPayload(overrides: Partial<Record<string, unknown>> = {}) {
     contactPhone: '9876500001',
     contactEmail: uniqueEmail('van-contact'),
     address: { line1: '1 Main St', city: 'Pune', state: 'Maharashtra', postalCode: '411001' },
+    typeDetails: sampleTypeDetailsFor('mobile_van_operator'),
     ...overrides,
   };
 }

@@ -1,8 +1,39 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createApplication, PROVIDER_TYPE_LABELS } from '../services/providerService';
 import { ApiError } from '../services/apiClient';
+import { PROVIDER_TYPE_FIELDS, type ProviderTypeField } from '../data/providerTypeFields';
 import './AuthForm.css';
+
+type TypeDetailsState = Record<string, string | boolean>;
+
+function defaultTypeDetails(fields: ProviderTypeField[]): TypeDetailsState {
+  const next: TypeDetailsState = {};
+  for (const field of fields) {
+    next[field.name] = field.kind === 'checkbox' ? false : '';
+  }
+  return next;
+}
+
+function buildTypeDetailsPayload(fields: ProviderTypeField[], state: TypeDetailsState): Record<string, unknown> {
+  const payload: Record<string, unknown> = {};
+  for (const field of fields) {
+    const value = state[field.name];
+    if (field.kind === 'number') {
+      payload[field.name] = Number(value) || 0;
+    } else if (field.kind === 'checkbox') {
+      payload[field.name] = Boolean(value);
+    } else {
+      const trimmed = typeof value === 'string' ? value.trim() : '';
+      // Optional text fields (no `required`) are left out entirely when empty, matching the
+      // backend's `.optional()` fields (e.g. pharmacy's GSTIN) rather than sending "".
+      if (trimmed || field.required) {
+        payload[field.name] = trimmed;
+      }
+    }
+  }
+  return payload;
+}
 
 export function BecomeProviderPage() {
   const navigate = useNavigate();
@@ -19,6 +50,19 @@ export function BecomeProviderPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const fields = PROVIDER_TYPE_FIELDS[providerType] ?? [];
+  const [typeDetails, setTypeDetails] = useState<TypeDetailsState>(() => defaultTypeDetails(fields));
+
+  // Switching provider type changes which fields apply — stale values from the previous type
+  // (e.g. a hospital's bed count) should never leak into a different type's typeDetails payload.
+  useEffect(() => {
+    setTypeDetails(defaultTypeDetails(PROVIDER_TYPE_FIELDS[providerType] ?? []));
+  }, [providerType]);
+
+  function updateTypeDetail(name: string, value: string | boolean) {
+    setTypeDetails((prev) => ({ ...prev, [name]: value }));
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
@@ -32,6 +76,7 @@ export function BecomeProviderPage() {
         contactPhone,
         contactEmail,
         address: { line1, city, state, postalCode, country: 'India' },
+        typeDetails: buildTypeDetailsPayload(fields, typeDetails),
       });
       navigate(`/dashboard/providers/${application.id}`, { replace: true });
     } catch (err) {
@@ -81,6 +126,68 @@ export function BecomeProviderPage() {
             <label htmlFor="contactEmail">Contact email</label>
             <input id="contactEmail" type="email" required value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
           </div>
+
+          {fields.length > 0 && (
+            <div className="become-provider__type-fields">
+              <span className="eyebrow">{PROVIDER_TYPE_LABELS[providerType]} details</span>
+              {fields.map((field) => {
+                const fieldId = `typeDetails-${field.name}`;
+                if (field.kind === 'checkbox') {
+                  return (
+                    <div className="form-field" key={field.name}>
+                      <label htmlFor={fieldId} className="become-provider__checkbox-label">
+                        <input
+                          id={fieldId}
+                          type="checkbox"
+                          checked={Boolean(typeDetails[field.name])}
+                          onChange={(e) => updateTypeDetail(field.name, e.target.checked)}
+                        />
+                        {field.label}
+                      </label>
+                    </div>
+                  );
+                }
+                if (field.kind === 'select') {
+                  return (
+                    <div className="form-field" key={field.name}>
+                      <label htmlFor={fieldId}>{field.label}</label>
+                      <select
+                        id={fieldId}
+                        required={field.required}
+                        value={(typeDetails[field.name] as string) ?? ''}
+                        onChange={(e) => updateTypeDetail(field.name, e.target.value)}
+                      >
+                        <option value="" disabled>
+                          Select one
+                        </option>
+                        {field.options.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="form-field" key={field.name}>
+                    <label htmlFor={fieldId}>{field.label}</label>
+                    <input
+                      id={fieldId}
+                      type={field.kind === 'number' ? 'number' : 'text'}
+                      min={field.kind === 'number' ? field.min : undefined}
+                      max={field.kind === 'number' ? field.max : undefined}
+                      required={field.required}
+                      placeholder={field.kind === 'text' ? field.placeholder : undefined}
+                      value={(typeDetails[field.name] as string) ?? ''}
+                      onChange={(e) => updateTypeDetail(field.name, e.target.value)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           <div className="form-field">
             <label htmlFor="line1">Address</label>
             <input id="line1" required placeholder="Street address" value={line1} onChange={(e) => setLine1(e.target.value)} />

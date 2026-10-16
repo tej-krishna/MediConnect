@@ -654,127 +654,1353 @@
             "application/json": {
               "schema": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
-                "type": "object",
-                "properties": {
-                  "providerType": {
-                    "type": "string",
-                    "enum": [
-                      "doctor",
-                      "hospital",
-                      "clinic",
-                      "pharmacy",
-                      "diagnostic_lab",
-                      "ambulance_provider",
-                      "equipment_provider",
-                      "mobile_van_operator",
-                      "ngo_coordinator",
-                      "insurance_provider"
-                    ]
-                  },
-                  "organizationName": {
-                    "type": "string",
-                    "minLength": 2,
-                    "maxLength": 160
-                  },
-                  "registrationNumber": {
-                    "type": "string",
-                    "minLength": 3,
-                    "maxLength": 60
-                  },
-                  "issuingAuthority": {
-                    "type": "string",
-                    "minLength": 2,
-                    "maxLength": 160
-                  },
-                  "contactPhone": {
-                    "type": "string",
-                    "minLength": 6,
-                    "maxLength": 20
-                  },
-                  "contactEmail": {
-                    "type": "string",
-                    "format": "email",
-                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
-                  },
-                  "address": {
+                "oneOf": [
+                  {
                     "type": "object",
                     "properties": {
-                      "line1": {
+                      "providerType": {
                         "type": "string",
-                        "minLength": 3,
+                        "const": "doctor"
+                      },
+                      "organizationName": {
+                        "type": "string",
+                        "minLength": 2,
                         "maxLength": 160
                       },
-                      "city": {
-                        "type": "string",
-                        "minLength": 2,
-                        "maxLength": 80
-                      },
-                      "state": {
-                        "type": "string",
-                        "minLength": 2,
-                        "maxLength": 80
-                      },
-                      "postalCode": {
+                      "registrationNumber": {
                         "type": "string",
                         "minLength": 3,
-                        "maxLength": 20
+                        "maxLength": 60
                       },
-                      "country": {
-                        "default": "India",
+                      "issuingAuthority": {
                         "type": "string",
                         "minLength": 2,
-                        "maxLength": 60
+                        "maxLength": 160
+                      },
+                      "contactPhone": {
+                        "type": "string",
+                        "minLength": 6,
+                        "maxLength": 20
+                      },
+                      "contactEmail": {
+                        "type": "string",
+                        "format": "email",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                      },
+                      "address": {
+                        "type": "object",
+                        "properties": {
+                          "line1": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 160
+                          },
+                          "city": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 80
+                          },
+                          "state": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 80
+                          },
+                          "postalCode": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 20
+                          },
+                          "country": {
+                            "default": "India",
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 60
+                          }
+                        },
+                        "required": [
+                          "line1",
+                          "city",
+                          "state",
+                          "postalCode",
+                          "country"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "location": {
+                        "type": "object",
+                        "properties": {
+                          "lat": {
+                            "type": "number",
+                            "minimum": -90,
+                            "maximum": 90
+                          },
+                          "lng": {
+                            "type": "number",
+                            "minimum": -180,
+                            "maximum": 180
+                          }
+                        },
+                        "required": [
+                          "lat",
+                          "lng"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "consultationFee": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1000000
+                      },
+                      "operatingHoursNote": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "typeDetails": {
+                        "type": "object",
+                        "properties": {
+                          "specialization": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 100
+                          },
+                          "qualification": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 150
+                          },
+                          "yearsOfExperience": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 70
+                          }
+                        },
+                        "required": [
+                          "specialization",
+                          "qualification",
+                          "yearsOfExperience"
+                        ],
+                        "additionalProperties": false
                       }
                     },
                     "required": [
-                      "line1",
-                      "city",
-                      "state",
-                      "postalCode",
-                      "country"
+                      "providerType",
+                      "organizationName",
+                      "registrationNumber",
+                      "issuingAuthority",
+                      "contactPhone",
+                      "contactEmail",
+                      "address",
+                      "typeDetails"
                     ],
                     "additionalProperties": false
                   },
-                  "location": {
+                  {
                     "type": "object",
                     "properties": {
-                      "lat": {
-                        "type": "number",
-                        "minimum": -90,
-                        "maximum": 90
+                      "providerType": {
+                        "type": "string",
+                        "const": "hospital"
                       },
-                      "lng": {
+                      "organizationName": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 160
+                      },
+                      "registrationNumber": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 60
+                      },
+                      "issuingAuthority": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 160
+                      },
+                      "contactPhone": {
+                        "type": "string",
+                        "minLength": 6,
+                        "maxLength": 20
+                      },
+                      "contactEmail": {
+                        "type": "string",
+                        "format": "email",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                      },
+                      "address": {
+                        "type": "object",
+                        "properties": {
+                          "line1": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 160
+                          },
+                          "city": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 80
+                          },
+                          "state": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 80
+                          },
+                          "postalCode": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 20
+                          },
+                          "country": {
+                            "default": "India",
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 60
+                          }
+                        },
+                        "required": [
+                          "line1",
+                          "city",
+                          "state",
+                          "postalCode",
+                          "country"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "location": {
+                        "type": "object",
+                        "properties": {
+                          "lat": {
+                            "type": "number",
+                            "minimum": -90,
+                            "maximum": 90
+                          },
+                          "lng": {
+                            "type": "number",
+                            "minimum": -180,
+                            "maximum": 180
+                          }
+                        },
+                        "required": [
+                          "lat",
+                          "lng"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "consultationFee": {
                         "type": "number",
-                        "minimum": -180,
-                        "maximum": 180
+                        "minimum": 0,
+                        "maximum": 1000000
+                      },
+                      "operatingHoursNote": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "typeDetails": {
+                        "type": "object",
+                        "properties": {
+                          "bedCount": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 10000
+                          },
+                          "hospitalType": {
+                            "type": "string",
+                            "enum": [
+                              "general",
+                              "multi_specialty",
+                              "specialty"
+                            ]
+                          },
+                          "emergencyServicesAvailable": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "bedCount",
+                          "hospitalType",
+                          "emergencyServicesAvailable"
+                        ],
+                        "additionalProperties": false
                       }
                     },
                     "required": [
-                      "lat",
-                      "lng"
+                      "providerType",
+                      "organizationName",
+                      "registrationNumber",
+                      "issuingAuthority",
+                      "contactPhone",
+                      "contactEmail",
+                      "address",
+                      "typeDetails"
                     ],
                     "additionalProperties": false
                   },
-                  "consultationFee": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1000000
+                  {
+                    "type": "object",
+                    "properties": {
+                      "providerType": {
+                        "type": "string",
+                        "const": "clinic"
+                      },
+                      "organizationName": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 160
+                      },
+                      "registrationNumber": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 60
+                      },
+                      "issuingAuthority": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 160
+                      },
+                      "contactPhone": {
+                        "type": "string",
+                        "minLength": 6,
+                        "maxLength": 20
+                      },
+                      "contactEmail": {
+                        "type": "string",
+                        "format": "email",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                      },
+                      "address": {
+                        "type": "object",
+                        "properties": {
+                          "line1": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 160
+                          },
+                          "city": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 80
+                          },
+                          "state": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 80
+                          },
+                          "postalCode": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 20
+                          },
+                          "country": {
+                            "default": "India",
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 60
+                          }
+                        },
+                        "required": [
+                          "line1",
+                          "city",
+                          "state",
+                          "postalCode",
+                          "country"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "location": {
+                        "type": "object",
+                        "properties": {
+                          "lat": {
+                            "type": "number",
+                            "minimum": -90,
+                            "maximum": 90
+                          },
+                          "lng": {
+                            "type": "number",
+                            "minimum": -180,
+                            "maximum": 180
+                          }
+                        },
+                        "required": [
+                          "lat",
+                          "lng"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "consultationFee": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1000000
+                      },
+                      "operatingHoursNote": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "typeDetails": {
+                        "type": "object",
+                        "properties": {
+                          "specialties": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 200
+                          },
+                          "clinicType": {
+                            "type": "string",
+                            "enum": [
+                              "general",
+                              "specialty"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "specialties",
+                          "clinicType"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "providerType",
+                      "organizationName",
+                      "registrationNumber",
+                      "issuingAuthority",
+                      "contactPhone",
+                      "contactEmail",
+                      "address",
+                      "typeDetails"
+                    ],
+                    "additionalProperties": false
                   },
-                  "operatingHoursNote": {
-                    "type": "string",
-                    "maxLength": 200
+                  {
+                    "type": "object",
+                    "properties": {
+                      "providerType": {
+                        "type": "string",
+                        "const": "pharmacy"
+                      },
+                      "organizationName": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 160
+                      },
+                      "registrationNumber": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 60
+                      },
+                      "issuingAuthority": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 160
+                      },
+                      "contactPhone": {
+                        "type": "string",
+                        "minLength": 6,
+                        "maxLength": 20
+                      },
+                      "contactEmail": {
+                        "type": "string",
+                        "format": "email",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                      },
+                      "address": {
+                        "type": "object",
+                        "properties": {
+                          "line1": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 160
+                          },
+                          "city": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 80
+                          },
+                          "state": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 80
+                          },
+                          "postalCode": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 20
+                          },
+                          "country": {
+                            "default": "India",
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 60
+                          }
+                        },
+                        "required": [
+                          "line1",
+                          "city",
+                          "state",
+                          "postalCode",
+                          "country"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "location": {
+                        "type": "object",
+                        "properties": {
+                          "lat": {
+                            "type": "number",
+                            "minimum": -90,
+                            "maximum": 90
+                          },
+                          "lng": {
+                            "type": "number",
+                            "minimum": -180,
+                            "maximum": 180
+                          }
+                        },
+                        "required": [
+                          "lat",
+                          "lng"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "consultationFee": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1000000
+                      },
+                      "operatingHoursNote": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "typeDetails": {
+                        "type": "object",
+                        "properties": {
+                          "has24x7Service": {
+                            "type": "boolean"
+                          },
+                          "gstin": {
+                            "type": "string",
+                            "maxLength": 20
+                          }
+                        },
+                        "required": [
+                          "has24x7Service"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "providerType",
+                      "organizationName",
+                      "registrationNumber",
+                      "issuingAuthority",
+                      "contactPhone",
+                      "contactEmail",
+                      "address",
+                      "typeDetails"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "providerType": {
+                        "type": "string",
+                        "const": "diagnostic_lab"
+                      },
+                      "organizationName": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 160
+                      },
+                      "registrationNumber": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 60
+                      },
+                      "issuingAuthority": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 160
+                      },
+                      "contactPhone": {
+                        "type": "string",
+                        "minLength": 6,
+                        "maxLength": 20
+                      },
+                      "contactEmail": {
+                        "type": "string",
+                        "format": "email",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                      },
+                      "address": {
+                        "type": "object",
+                        "properties": {
+                          "line1": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 160
+                          },
+                          "city": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 80
+                          },
+                          "state": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 80
+                          },
+                          "postalCode": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 20
+                          },
+                          "country": {
+                            "default": "India",
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 60
+                          }
+                        },
+                        "required": [
+                          "line1",
+                          "city",
+                          "state",
+                          "postalCode",
+                          "country"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "location": {
+                        "type": "object",
+                        "properties": {
+                          "lat": {
+                            "type": "number",
+                            "minimum": -90,
+                            "maximum": 90
+                          },
+                          "lng": {
+                            "type": "number",
+                            "minimum": -180,
+                            "maximum": 180
+                          }
+                        },
+                        "required": [
+                          "lat",
+                          "lng"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "consultationFee": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1000000
+                      },
+                      "operatingHoursNote": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "typeDetails": {
+                        "type": "object",
+                        "properties": {
+                          "nablAccreditationNumber": {
+                            "type": "string",
+                            "maxLength": 60
+                          },
+                          "homeCollectionAvailable": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "homeCollectionAvailable"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "providerType",
+                      "organizationName",
+                      "registrationNumber",
+                      "issuingAuthority",
+                      "contactPhone",
+                      "contactEmail",
+                      "address",
+                      "typeDetails"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "providerType": {
+                        "type": "string",
+                        "const": "ambulance_provider"
+                      },
+                      "organizationName": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 160
+                      },
+                      "registrationNumber": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 60
+                      },
+                      "issuingAuthority": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 160
+                      },
+                      "contactPhone": {
+                        "type": "string",
+                        "minLength": 6,
+                        "maxLength": 20
+                      },
+                      "contactEmail": {
+                        "type": "string",
+                        "format": "email",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                      },
+                      "address": {
+                        "type": "object",
+                        "properties": {
+                          "line1": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 160
+                          },
+                          "city": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 80
+                          },
+                          "state": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 80
+                          },
+                          "postalCode": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 20
+                          },
+                          "country": {
+                            "default": "India",
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 60
+                          }
+                        },
+                        "required": [
+                          "line1",
+                          "city",
+                          "state",
+                          "postalCode",
+                          "country"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "location": {
+                        "type": "object",
+                        "properties": {
+                          "lat": {
+                            "type": "number",
+                            "minimum": -90,
+                            "maximum": 90
+                          },
+                          "lng": {
+                            "type": "number",
+                            "minimum": -180,
+                            "maximum": 180
+                          }
+                        },
+                        "required": [
+                          "lat",
+                          "lng"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "consultationFee": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1000000
+                      },
+                      "operatingHoursNote": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "typeDetails": {
+                        "type": "object",
+                        "properties": {
+                          "vehicleCount": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000
+                          },
+                          "vehicleType": {
+                            "type": "string",
+                            "enum": [
+                              "basic_life_support",
+                              "advanced_life_support"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "vehicleCount",
+                          "vehicleType"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "providerType",
+                      "organizationName",
+                      "registrationNumber",
+                      "issuingAuthority",
+                      "contactPhone",
+                      "contactEmail",
+                      "address",
+                      "typeDetails"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "providerType": {
+                        "type": "string",
+                        "const": "equipment_provider"
+                      },
+                      "organizationName": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 160
+                      },
+                      "registrationNumber": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 60
+                      },
+                      "issuingAuthority": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 160
+                      },
+                      "contactPhone": {
+                        "type": "string",
+                        "minLength": 6,
+                        "maxLength": 20
+                      },
+                      "contactEmail": {
+                        "type": "string",
+                        "format": "email",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                      },
+                      "address": {
+                        "type": "object",
+                        "properties": {
+                          "line1": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 160
+                          },
+                          "city": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 80
+                          },
+                          "state": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 80
+                          },
+                          "postalCode": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 20
+                          },
+                          "country": {
+                            "default": "India",
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 60
+                          }
+                        },
+                        "required": [
+                          "line1",
+                          "city",
+                          "state",
+                          "postalCode",
+                          "country"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "location": {
+                        "type": "object",
+                        "properties": {
+                          "lat": {
+                            "type": "number",
+                            "minimum": -90,
+                            "maximum": 90
+                          },
+                          "lng": {
+                            "type": "number",
+                            "minimum": -180,
+                            "maximum": 180
+                          }
+                        },
+                        "required": [
+                          "lat",
+                          "lng"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "consultationFee": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1000000
+                      },
+                      "operatingHoursNote": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "typeDetails": {
+                        "type": "object",
+                        "properties": {
+                          "equipmentCategories": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 200
+                          },
+                          "serviceType": {
+                            "type": "string",
+                            "enum": [
+                              "rental",
+                              "sale",
+                              "both"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "equipmentCategories",
+                          "serviceType"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "providerType",
+                      "organizationName",
+                      "registrationNumber",
+                      "issuingAuthority",
+                      "contactPhone",
+                      "contactEmail",
+                      "address",
+                      "typeDetails"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "providerType": {
+                        "type": "string",
+                        "const": "mobile_van_operator"
+                      },
+                      "organizationName": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 160
+                      },
+                      "registrationNumber": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 60
+                      },
+                      "issuingAuthority": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 160
+                      },
+                      "contactPhone": {
+                        "type": "string",
+                        "minLength": 6,
+                        "maxLength": 20
+                      },
+                      "contactEmail": {
+                        "type": "string",
+                        "format": "email",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                      },
+                      "address": {
+                        "type": "object",
+                        "properties": {
+                          "line1": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 160
+                          },
+                          "city": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 80
+                          },
+                          "state": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 80
+                          },
+                          "postalCode": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 20
+                          },
+                          "country": {
+                            "default": "India",
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 60
+                          }
+                        },
+                        "required": [
+                          "line1",
+                          "city",
+                          "state",
+                          "postalCode",
+                          "country"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "location": {
+                        "type": "object",
+                        "properties": {
+                          "lat": {
+                            "type": "number",
+                            "minimum": -90,
+                            "maximum": 90
+                          },
+                          "lng": {
+                            "type": "number",
+                            "minimum": -180,
+                            "maximum": 180
+                          }
+                        },
+                        "required": [
+                          "lat",
+                          "lng"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "consultationFee": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1000000
+                      },
+                      "operatingHoursNote": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "typeDetails": {
+                        "type": "object",
+                        "properties": {
+                          "vanCount": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 500
+                          },
+                          "coverageAreas": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 300
+                          }
+                        },
+                        "required": [
+                          "vanCount",
+                          "coverageAreas"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "providerType",
+                      "organizationName",
+                      "registrationNumber",
+                      "issuingAuthority",
+                      "contactPhone",
+                      "contactEmail",
+                      "address",
+                      "typeDetails"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "providerType": {
+                        "type": "string",
+                        "const": "ngo_coordinator"
+                      },
+                      "organizationName": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 160
+                      },
+                      "registrationNumber": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 60
+                      },
+                      "issuingAuthority": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 160
+                      },
+                      "contactPhone": {
+                        "type": "string",
+                        "minLength": 6,
+                        "maxLength": 20
+                      },
+                      "contactEmail": {
+                        "type": "string",
+                        "format": "email",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                      },
+                      "address": {
+                        "type": "object",
+                        "properties": {
+                          "line1": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 160
+                          },
+                          "city": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 80
+                          },
+                          "state": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 80
+                          },
+                          "postalCode": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 20
+                          },
+                          "country": {
+                            "default": "India",
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 60
+                          }
+                        },
+                        "required": [
+                          "line1",
+                          "city",
+                          "state",
+                          "postalCode",
+                          "country"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "location": {
+                        "type": "object",
+                        "properties": {
+                          "lat": {
+                            "type": "number",
+                            "minimum": -90,
+                            "maximum": 90
+                          },
+                          "lng": {
+                            "type": "number",
+                            "minimum": -180,
+                            "maximum": 180
+                          }
+                        },
+                        "required": [
+                          "lat",
+                          "lng"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "consultationFee": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1000000
+                      },
+                      "operatingHoursNote": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "typeDetails": {
+                        "type": "object",
+                        "properties": {
+                          "ngoRegistrationType": {
+                            "type": "string",
+                            "enum": [
+                              "trust",
+                              "society",
+                              "section8"
+                            ]
+                          },
+                          "focusAreas": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 300
+                          }
+                        },
+                        "required": [
+                          "ngoRegistrationType",
+                          "focusAreas"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "providerType",
+                      "organizationName",
+                      "registrationNumber",
+                      "issuingAuthority",
+                      "contactPhone",
+                      "contactEmail",
+                      "address",
+                      "typeDetails"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "providerType": {
+                        "type": "string",
+                        "const": "insurance_provider"
+                      },
+                      "organizationName": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 160
+                      },
+                      "registrationNumber": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 60
+                      },
+                      "issuingAuthority": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 160
+                      },
+                      "contactPhone": {
+                        "type": "string",
+                        "minLength": 6,
+                        "maxLength": 20
+                      },
+                      "contactEmail": {
+                        "type": "string",
+                        "format": "email",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                      },
+                      "address": {
+                        "type": "object",
+                        "properties": {
+                          "line1": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 160
+                          },
+                          "city": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 80
+                          },
+                          "state": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 80
+                          },
+                          "postalCode": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 20
+                          },
+                          "country": {
+                            "default": "India",
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 60
+                          }
+                        },
+                        "required": [
+                          "line1",
+                          "city",
+                          "state",
+                          "postalCode",
+                          "country"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "location": {
+                        "type": "object",
+                        "properties": {
+                          "lat": {
+                            "type": "number",
+                            "minimum": -90,
+                            "maximum": 90
+                          },
+                          "lng": {
+                            "type": "number",
+                            "minimum": -180,
+                            "maximum": 180
+                          }
+                        },
+                        "required": [
+                          "lat",
+                          "lng"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "consultationFee": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1000000
+                      },
+                      "operatingHoursNote": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "typeDetails": {
+                        "type": "object",
+                        "properties": {
+                          "irdaiLicenseNumber": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 60
+                          },
+                          "insuranceTypesOffered": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 300
+                          }
+                        },
+                        "required": [
+                          "irdaiLicenseNumber",
+                          "insuranceTypesOffered"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "providerType",
+                      "organizationName",
+                      "registrationNumber",
+                      "issuingAuthority",
+                      "contactPhone",
+                      "contactEmail",
+                      "address",
+                      "typeDetails"
+                    ],
+                    "additionalProperties": false
                   }
-                },
-                "required": [
-                  "providerType",
-                  "organizationName",
-                  "registrationNumber",
-                  "issuingAuthority",
-                  "contactPhone",
-                  "contactEmail",
-                  "address"
-                ],
-                "additionalProperties": false
+                ]
               }
             }
           }

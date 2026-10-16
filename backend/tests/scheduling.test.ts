@@ -4,19 +4,28 @@ import { connectDatabase, disconnectDatabase } from '../src/config/db';
 import { createApp } from '../src/app';
 import { env } from '../src/config/env';
 import { Slot } from '../src/modules/scheduling/slot.model';
-import { registerAndLogin, registerAdminAndLogin, authHeader, createApprovedProvider, uniqueEmail } from './helpers';
+import {
+  registerAndLogin,
+  registerAdminAndLogin,
+  authHeader,
+  createApprovedProvider,
+  uniqueEmail,
+  sampleTypeDetailsFor,
+} from './helpers';
 
 const base = env.API_PREFIX;
 
 function samplePayload(overrides: Partial<Record<string, unknown>> = {}) {
+  const providerType = (overrides.providerType as string) ?? 'doctor';
   return {
-    providerType: 'doctor',
+    providerType,
     organizationName: 'Scheduling Test Clinic',
     registrationNumber: `SCHED-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     issuingAuthority: 'Test Authority',
     contactPhone: '9876500000',
     contactEmail: uniqueEmail('sched-contact'),
     address: { line1: '1 Main St', city: 'Pune', state: 'Maharashtra', postalCode: '411001' },
+    typeDetails: sampleTypeDetailsFor(providerType),
     ...overrides,
   };
 }

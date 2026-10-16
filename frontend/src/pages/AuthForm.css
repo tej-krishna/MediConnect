@@ -121,6 +121,32 @@
   gap: 10px;
 }
 
+.become-provider__type-fields {
+  margin: 4px 0 18px;
+  padding: 14px 16px;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+.become-provider__type-fields .eyebrow {
+  display: block;
+  margin-bottom: 12px;
+}
+.become-provider__type-fields .form-field:last-child {
+  margin-bottom: 0;
+}
+
+.become-provider__checkbox-label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.become-provider__checkbox-label input[type='checkbox'] {
+  width: auto;
+}
+
 /* Compact mode: used on pages whose form is tall enough to need a scrollbar otherwise
    (currently the register form, which has more fields than login/forgot/reset). Shrinking the
    card's own font-size scales every em-based padding (inputs, buttons) down with it; px/rem

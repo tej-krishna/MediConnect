@@ -4,7 +4,14 @@ import { connectDatabase, disconnectDatabase } from '../src/config/db';
 import { createApp } from '../src/app';
 import { env } from '../src/config/env';
 import { CareOffering } from '../src/modules/homecare/careOffering.model';
-import { registerAndLogin, registerAdminAndLogin, authHeader, createApprovedProvider, uniqueEmail } from './helpers';
+import {
+  registerAndLogin,
+  registerAdminAndLogin,
+  authHeader,
+  createApprovedProvider,
+  uniqueEmail,
+  sampleTypeDetailsFor,
+} from './helpers';
 
 const base = env.API_PREFIX;
 
@@ -17,6 +24,7 @@ function equipmentProviderPayload(overrides: Partial<Record<string, unknown>> = 
     contactPhone: '9876511111',
     contactEmail: uniqueEmail('equipment-contact'),
     address: { line1: '1 Equip St', city: 'Pune', state: 'Maharashtra', postalCode: '411001' },
+    typeDetails: sampleTypeDetailsFor('equipment_provider'),
     ...overrides,
   };
 }
