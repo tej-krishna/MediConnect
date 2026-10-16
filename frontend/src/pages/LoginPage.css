@@ -39,9 +39,13 @@
   animation: float-drift 7s ease-in-out infinite;
 }
 
-.feature-float--1 { left: 15%; top: 20%; --rot: -7deg; animation-delay: 0s; }
-.feature-float--2 { right: 15%; top: 38%; --rot: 6deg; animation-delay: 1.2s; }
-.feature-float--3 { left: 17%; bottom: 14%; --rot: -4deg; animation-delay: 2.4s; }
+/* Positioned relative to the card's own edge (card is centered, max-width 400px → half-width
+   200px) plus a fixed 24px gap, rather than a viewport percentage — a percentage that looked
+   "close" at 1280px wide overlapped the card entirely at ~1024px, since the card doesn't shrink
+   with the viewport until the 980px breakpoint hides this decoration layer altogether. */
+.feature-float--1 { left: calc(50% - 414px); top: 20%; --rot: -7deg; animation-delay: 0s; }
+.feature-float--2 { left: calc(50% + 224px); top: 38%; --rot: 6deg; animation-delay: 1.2s; }
+.feature-float--3 { left: calc(50% - 414px); bottom: 14%; --rot: -4deg; animation-delay: 2.4s; }
 
 /* --- scattered medical icons --- */
 
