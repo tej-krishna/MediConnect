@@ -1,6 +1,7 @@
+import { useEffect } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
+import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import { Link } from 'react-router-dom';
 import type { LatLng, PublicProvider } from '../types/provider';
 import { PROVIDER_TYPE_LABELS } from '../services/providerService';
@@ -31,29 +32,40 @@ function pinIcon(color: string) {
   });
 }
 
+function RecenterOnChange({ center, zoom }: { center: LatLng; zoom: number }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView([center.lat, center.lng], zoom);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [center.lat, center.lng]);
+  return null;
+}
+
 interface ProviderMapProps {
   providers: PublicProvider[];
   center: LatLng;
   zoom?: number;
   heightPx?: number;
+  fullscreen?: boolean;
 }
 
-export function ProviderMap({ providers, center, zoom = 13, heightPx = 440 }: ProviderMapProps) {
+export function ProviderMap({ providers, center, zoom = 13, heightPx = 440, fullscreen = false }: ProviderMapProps) {
   const located = providers.filter((p): p is PublicProvider & { location: LatLng } => p.location !== null);
   const typesPresent = Array.from(new Set(located.map((p) => p.providerType)));
 
   return (
-    <div className="provider-map">
+    <div className={`provider-map${fullscreen ? ' provider-map--fullscreen' : ''}`}>
       <MapContainer
         center={[center.lat, center.lng]}
         zoom={zoom}
-        scrollWheelZoom={false}
-        style={{ height: heightPx, width: '100%' }}
+        scrollWheelZoom={fullscreen}
+        style={{ height: fullscreen ? '100%' : heightPx, width: '100%' }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <RecenterOnChange center={center} zoom={zoom} />
         {located.map((provider) => (
           <Marker
             key={provider.id}

@@ -1,3 +1,5 @@
+/* Shared by the simple list-style search pages (diagnostic tests, health camps,
+   home care, medicines) as well as the map-based Find Care page below. */
 .search-page {
   padding-bottom: 64px;
 }
@@ -36,71 +38,129 @@
   max-width: 100%;
 }
 
-.search-controls {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 4px 0 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.search-controls select {
-  padding: 0.5em 0.75em;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-}
-
-.view-toggle {
-  display: inline-flex;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-
-.view-toggle button {
-  padding: 0.5em 0.9em;
-  border: none;
-  background: var(--color-surface);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  font: inherit;
-  font-weight: 600;
-}
-
-.view-toggle button + button {
-  border-left: 1px solid var(--color-border-strong);
-}
-
-.view-toggle button.active {
-  background: var(--color-primary);
-  color: #fff;
-}
-
-.map-preview {
-  margin-top: 28px;
-}
-
-.map-preview__head {
-  margin-bottom: 12px;
-}
-
-.map-preview__head h2 {
-  margin-bottom: 4px;
-  font-size: 1.1rem;
-}
-
 .provider-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
 }
 
-.search-page__reset {
-  margin-top: 28px;
-  text-align: center;
-  font-size: 0.88rem;
+/* Find Care page: full-bleed map with a floating, collapsible search overlay. */
+.map-page {
+  position: relative;
+  height: calc(100svh - var(--header-height));
+  width: 100%;
+  overflow: hidden;
+}
+
+.map-search {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  max-height: calc(100% - 32px);
+}
+
+.map-search__toggle {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-raised);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.map-search__toggle:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary-darker);
+}
+
+.map-search--open .map-search__toggle {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.map-search__panel {
+  width: min(340px, calc(100vw - 32px));
+  max-height: calc(100svh - var(--header-height) - 96px);
+  overflow-y: auto;
+  text-align: left;
+  box-shadow: var(--shadow-raised);
+}
+
+.map-search__panel h2 {
+  font-size: 1.15rem;
+  margin-top: 2px;
+}
+
+.map-search__panel select {
+  width: 100%;
+  margin-top: 14px;
+  padding: 0.5em 0.75em;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.map-search__status {
+  margin: 12px 0 4px;
+  font-size: 0.85rem;
+}
+
+.map-search__demo-note {
+  margin-top: 14px;
+  font-size: 0.82rem;
+}
+
+.map-search__results {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  border-top: 1px solid var(--color-border);
+}
+
+.map-search__results li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.85rem;
+}
+
+.map-search__result-name {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.map-search__reset {
+  margin-top: 16px;
+}
+
+@media (max-width: 640px) {
+  .map-search {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    align-items: stretch;
+  }
+
+  .map-search__toggle {
+    align-self: flex-end;
+  }
+
+  .map-search__panel {
+    width: 100%;
+  }
 }
