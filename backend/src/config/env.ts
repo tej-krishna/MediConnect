@@ -14,6 +14,17 @@ const envSchema = z.object({
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
 
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
+  FRONTEND_URL: z.string().default('http://localhost:5173'),
+
+  // Google OAuth ("Continue with Google"). Optional at the schema level so the app still boots
+  // without them in an environment that doesn't need Google sign-in (e.g. a CI test run); the
+  // /auth/google routes themselves fail fast with a clear error if these are unset at request time.
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  // The backend's own callback URL, registered in Google Cloud Console's "Authorized redirect URIs".
+  GOOGLE_REDIRECT_URI: z.string().optional(),
+  // Custom URL scheme the mobile app registers for deep-link callbacks (mediconnect://auth/callback).
+  MOBILE_OAUTH_SCHEME: z.string().default('mediconnect'),
 
   STORAGE_DRIVER: z.enum(['local']).default('local'),
   STORAGE_LOCAL_ROOT: z.string().default('./storage'),

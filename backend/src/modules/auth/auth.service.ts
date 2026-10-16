@@ -41,6 +41,53 @@ async function issueTokens(user: UserDoc, meta: RequestMeta): Promise<IssuedToke
   return { accessToken, refreshToken: rawRefreshToken, refreshExpiresAt };
 }
 
+export interface GoogleProfile {
+  googleId: string;
+  email: string;
+  emailVerified: boolean;
+  fullName: string;
+}
+
+/**
+ * Finds-or-creates a user from a verified Google profile and issues our own session tokens, the
+ * same IssuedTokens shape every other login path returns — Google is only ever a way to establish
+ * *who the user is*, never a parallel session system. Links into an existing password-based
+ * account by email when one exists (making it a hybrid account that can log in either way) rather
+ * than creating a duplicate; only does so when Google reports the email as verified, so an
+ * unverified Google email can't be used to take over an existing account.
+ */
+export async function loginWithGoogleProfile(
+  profile: GoogleProfile,
+  meta: RequestMeta,
+): Promise<{ user: UserDoc; tokens: IssuedTokens }> {
+  let user = await User.findOne({ googleId: profile.googleId });
+
+  if (!user) {
+    user = await User.findOne({ email: profile.email });
+    if (user) {
+      if (!profile.emailVerified) {
+        throw AppError.forbidden('Google account email is not verified');
+      }
+      user.googleId = profile.googleId;
+      await user.save();
+    } else {
+      user = await User.create({
+        email: profile.email,
+        googleId: profile.googleId,
+        fullName: profile.fullName,
+        roles: ['patient'],
+      });
+    }
+  }
+
+  if (user.status === 'suspended') {
+    throw AppError.forbidden('This account has been suspended');
+  }
+
+  const tokens = await issueTokens(user, meta);
+  return { user, tokens };
+}
+
 export async function register(input: RegisterInput): Promise<UserDoc> {
   const existing = await User.findOne({ email: input.email });
   if (existing) {
@@ -69,6 +116,10 @@ export async function login(input: LoginInput, meta: RequestMeta): Promise<{ use
 
   if (user.status === 'suspended') {
     throw AppError.forbidden('This account has been suspended');
+  }
+
+  if (!user.passwordHash) {
+    throw AppError.unauthorized('This account uses Google sign-in. Please continue with Google instead.');
   }
 
   const passwordMatches = await bcrypt.compare(input.password, user.passwordHash);

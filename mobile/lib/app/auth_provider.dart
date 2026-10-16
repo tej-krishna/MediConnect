@@ -1,8 +1,12 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
+import '../config/api_config.dart';
 import '../models/user.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
 import '../services/secure_storage_service.dart';
+
+const _mobileOAuthScheme = 'mediconnect';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
@@ -88,6 +92,48 @@ class AuthProvider extends ChangeNotifier {
     _lastError = null;
     try {
       await _authService.register(email: email, password: password, fullName: fullName, phone: phone);
+      return true;
+    } catch (e) {
+      _lastError = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Opens the backend's /auth/google in an external browser tab (Chrome Custom Tabs on Android)
+  /// via flutter_web_auth_2, which captures the mediconnect://auth/callback redirect the backend
+  /// sends once Google sign-in completes — the same role Chrome's own page-reload-and-cookie-pickup
+  /// plays for the website, just carried over an explicit deep link since a native app has no
+  /// cookie jar for the backend to drop a session into directly (see README's mobile-vs-web
+  /// authentication section).
+  Future<bool> loginWithGoogle() async {
+    _lastError = null;
+    try {
+      final authUrl = '${ApiConfig.baseUrl}/auth/google?platform=mobile';
+      final result = await FlutterWebAuth2.authenticate(url: authUrl, callbackUrlScheme: _mobileOAuthScheme);
+      final uri = Uri.parse(result);
+
+      final error = uri.queryParameters['error'];
+      if (error != null) {
+        _lastError = error;
+        notifyListeners();
+        return false;
+      }
+
+      final accessToken = uri.queryParameters['accessToken'];
+      final refreshToken = uri.queryParameters['refreshToken'];
+      if (accessToken == null || refreshToken == null) {
+        _lastError = 'Google sign-in did not return a session';
+        notifyListeners();
+        return false;
+      }
+
+      ApiClient.instance.setAccessToken(accessToken);
+      final user = await _authService.me();
+      await SecureStorageService.instance.saveRefreshToken(refreshToken);
+      _user = user;
+      _status = AuthStatus.authenticated;
+      notifyListeners();
       return true;
     } catch (e) {
       _lastError = e.toString();

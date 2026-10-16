@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../app/AuthContext';
 import { ApiError } from '../services/apiClient';
+import { GoogleAuthButton } from '../components/GoogleAuthButton';
 import './AuthForm.css';
 
 export function RegisterPage() {
@@ -73,6 +74,8 @@ export function RegisterPage() {
             {submitting ? 'Creating account…' : 'Create account'}
           </button>
         </form>
+        <div className="auth-divider"><span>or</span></div>
+        <GoogleAuthButton />
         <p className="auth-switch">
           Already have an account? <Link to="/login">Log in</Link>
         </p>

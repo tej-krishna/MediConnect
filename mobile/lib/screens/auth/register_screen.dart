@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../app/auth_provider.dart';
 import '../../widgets/error_banner.dart';
+import '../../widgets/google_signin_button.dart';
 
 /// Self-registration always creates a `patient` account — the backend ignores any `role` field a
 /// client sends (see auth.service.ts's register()), so this form doesn't offer one at all; there
@@ -21,6 +22,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _submitting = false;
+  bool _googleSubmitting = false;
   String? _error;
   bool _success = false;
 
@@ -55,6 +57,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _error = auth.lastError ?? 'Could not create your account.';
       }
     });
+  }
+
+  Future<void> _submitGoogle() async {
+    setState(() {
+      _googleSubmitting = true;
+      _error = null;
+    });
+    final auth = context.read<AuthProvider>();
+    final success = await auth.loginWithGoogle();
+    if (!mounted) return;
+    setState(() => _googleSubmitting = false);
+    if (success) {
+      context.go('/');
+    } else if (auth.lastError != null) {
+      setState(() => _error = 'Google sign-in failed. Please try again.');
+    }
   }
 
   @override
@@ -125,6 +143,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       onPressed: _submitting ? null : _submit,
                       child: Text(_submitting ? 'Creating…' : 'Create account'),
                     ),
+                    const SizedBox(height: 16),
+                    const Row(
+                      children: [
+                        Expanded(child: Divider()),
+                        Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('or')),
+                        Expanded(child: Divider()),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    GoogleSignInButton(onPressed: _submitGoogle, loading: _googleSubmitting),
                   ],
                 ),
               ),

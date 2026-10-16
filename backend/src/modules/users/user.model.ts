@@ -10,7 +10,13 @@ const userSchema = new Schema(
       lowercase: true,
       trim: true,
     },
-    passwordHash: { type: String, required: true },
+    // Optional: a Google-only account (created via Google sign-in, never given a password) has no
+    // passwordHash. auth.service.ts's password-login path checks for this and rejects with a clear
+    // "use Google sign-in" error rather than crashing on bcrypt.compare(password, undefined).
+    passwordHash: { type: String, required: false },
+    // Sparse so multiple password-only accounts (no googleId) don't collide on a shared `null`
+    // under a plain unique index.
+    googleId: { type: String, required: false, unique: true, sparse: true },
     fullName: { type: String, required: true, trim: true },
     phone: { type: String, trim: true },
     roles: {

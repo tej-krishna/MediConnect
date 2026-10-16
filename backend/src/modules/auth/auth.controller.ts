@@ -8,6 +8,7 @@ import { toPublicUser } from '../users/user.mapper';
 import { User } from '../users/user.model';
 import * as authService from './auth.service';
 import type { IssuedTokens } from './auth.service';
+import { buildGoogleAuthUrl, exchangeGoogleCode, isValidPlatform, type OAuthPlatform } from './google';
 
 const REFRESH_COOKIE_PATH = `${env.API_PREFIX}/auth`;
 
@@ -95,6 +96,52 @@ export const forgotPasswordHandler = asyncHandler(async (req, res) => {
 export const resetPasswordHandler = asyncHandler(async (req, res) => {
   await authService.resetPassword(req.body.token, req.body.newPassword);
   sendSuccess(res, { message: 'Password updated successfully' });
+});
+
+export const googleStartHandler = asyncHandler(async (req, res) => {
+  const platform: OAuthPlatform = isValidPlatform(req.query.platform) ? req.query.platform : 'web';
+  res.redirect(buildGoogleAuthUrl(platform));
+});
+
+/**
+ * Google redirects the user's browser here directly (not an XHR a frontend can read the response
+ * of), so every outcome — success or failure — has to be a redirect, never a JSON error response:
+ * a web client's AuthProvider picks the session up from the HttpOnly cookie on its next mount (the
+ * same restoreSession() every page load already runs), while a native app has no cookie jar at all
+ * and gets its tokens the only way a browser redirect can hand data to it — a custom-scheme deep
+ * link query string, mirroring the body-token fallback /auth/login already offers mobile.
+ */
+export const googleCallbackHandler = asyncHandler(async (req, res) => {
+  const platform: OAuthPlatform = isValidPlatform(req.query.state) ? req.query.state : 'web';
+  const redirectOnError = (reason: string) =>
+    platform === 'mobile'
+      ? res.redirect(`${env.MOBILE_OAUTH_SCHEME}://auth/callback?error=${encodeURIComponent(reason)}`)
+      : res.redirect(`${env.FRONTEND_URL}/login?error=${encodeURIComponent(reason)}`);
+
+  const code = typeof req.query.code === 'string' ? req.query.code : undefined;
+  if (!code) {
+    redirectOnError('google_auth_cancelled');
+    return;
+  }
+
+  let result;
+  try {
+    const profile = await exchangeGoogleCode(code);
+    result = await authService.loginWithGoogleProfile(profile, requestMeta(req));
+  } catch (err) {
+    redirectOnError(err instanceof AppError ? err.message : 'google_auth_failed');
+    return;
+  }
+
+  const { tokens } = result;
+  if (platform === 'mobile') {
+    const params = new URLSearchParams({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
+    res.redirect(`${env.MOBILE_OAUTH_SCHEME}://auth/callback?${params.toString()}`);
+    return;
+  }
+
+  setRefreshCookie(res, tokens);
+  res.redirect(`${env.FRONTEND_URL}/account`);
 });
 
 export const meHandler = asyncHandler(async (req, res) => {

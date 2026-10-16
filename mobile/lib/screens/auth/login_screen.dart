@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../app/auth_provider.dart';
 import '../../widgets/error_banner.dart';
+import '../../widgets/google_signin_button.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _submitting = false;
+  bool _googleSubmitting = false;
   String? _error;
 
   @override
@@ -39,6 +41,22 @@ class _LoginScreenState extends State<LoginScreen> {
       context.go('/');
     } else {
       setState(() => _error = auth.lastError ?? 'Could not log in.');
+    }
+  }
+
+  Future<void> _submitGoogle() async {
+    setState(() {
+      _googleSubmitting = true;
+      _error = null;
+    });
+    final auth = context.read<AuthProvider>();
+    final success = await auth.loginWithGoogle();
+    if (!mounted) return;
+    setState(() => _googleSubmitting = false);
+    if (success) {
+      context.go('/');
+    } else if (auth.lastError != null) {
+      setState(() => _error = 'Google sign-in failed. Please try again.');
     }
   }
 
@@ -87,6 +105,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: _submitting ? null : _submit,
                       child: Text(_submitting ? 'Logging in…' : 'Log in'),
                     ),
+                    const SizedBox(height: 16),
+                    const Row(
+                      children: [
+                        Expanded(child: Divider()),
+                        Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('or')),
+                        Expanded(child: Divider()),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    GoogleSignInButton(onPressed: _submitGoogle, loading: _googleSubmitting),
                     const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,

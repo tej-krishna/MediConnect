@@ -2,7 +2,13 @@ import { useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../app/AuthContext';
 import { ApiError } from '../services/apiClient';
+import { GoogleAuthButton } from '../components/GoogleAuthButton';
 import './AuthForm.css';
+
+const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
+  google_auth_cancelled: 'Google sign-in was cancelled.',
+  google_auth_failed: 'Google sign-in failed. Please try again.',
+};
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -10,7 +16,10 @@ export function LoginPage() {
   const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const googleError = new URLSearchParams(location.search).get('error');
+  const [error, setError] = useState<string | null>(
+    googleError ? (GOOGLE_ERROR_MESSAGES[googleError] ?? 'Google sign-in failed. Please try again.') : null,
+  );
   const [submitting, setSubmitting] = useState(false);
 
   const from = (location.state as { from?: { pathname?: string } })?.from?.pathname ?? '/account';
@@ -70,6 +79,8 @@ export function LoginPage() {
             {submitting ? 'Logging in…' : 'Log in'}
           </button>
         </form>
+        <div className="auth-divider"><span>or</span></div>
+        <GoogleAuthButton />
         <p className="auth-switch">
           Don't have an account? <Link to="/register">Sign up</Link>
         </p>

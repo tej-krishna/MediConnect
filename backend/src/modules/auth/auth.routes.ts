@@ -16,6 +16,8 @@ import {
   forgotPasswordHandler,
   resetPasswordHandler,
   meHandler,
+  googleStartHandler,
+  googleCallbackHandler,
 } from './auth.controller';
 
 export const authRouter = Router();
@@ -32,3 +34,5 @@ authRouter.post(
 );
 authRouter.post('/auth/reset-password', authLimiter, validateBody(resetPasswordSchema), resetPasswordHandler);
 authRouter.get('/auth/me', requireAuth, meHandler);
+authRouter.get('/auth/google', googleStartHandler);
+authRouter.get('/auth/google/callback', googleCallbackHandler);
