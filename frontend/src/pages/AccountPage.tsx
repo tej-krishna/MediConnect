@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../app/AuthContext';
 import { listMyApplications, PROVIDER_TYPE_LABELS } from '../services/providerService';
 import type { OwnerProviderApplication } from '../types/provider';
@@ -27,6 +27,7 @@ function initials(name: string) {
 
 export function AccountPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [applications, setApplications] = useState<OwnerProviderApplication[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,6 +44,10 @@ export function AccountPage() {
 
   return (
     <div className="account-page">
+      <button type="button" className="back-link" onClick={() => navigate(-1)}>
+        ← Back
+      </button>
+
       <div className="card">
         <div className="account-profile">
           <div className="account-profile__avatar">{initials(user.fullName)}</div>
