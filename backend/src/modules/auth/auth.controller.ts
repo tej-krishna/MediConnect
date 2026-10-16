@@ -13,11 +13,19 @@ import { buildGoogleAuthUrl, exchangeGoogleCode, isValidPlatform, type OAuthPlat
 
 const REFRESH_COOKIE_PATH = `${env.API_PREFIX}/auth`;
 
+// Production serves the frontend and this API from different *.vercel.app subdomains — and
+// vercel.app is on the public suffix list specifically so sibling projects don't share a "site",
+// which makes the two cross-site to each other, not just cross-origin. A SameSite=Lax cookie is
+// still attached to the callback's own top-level redirect (Lax allows that), but the frontend's
+// very next fetch('/auth/refresh', { credentials: 'include' }) is a cross-site subrequest, and Lax
+// cookies are never sent on those — only SameSite=None is. Locally, frontend and backend are both
+// "localhost" (same site regardless of port), so Lax already works there and needs no HTTPS.
 function setRefreshCookie(res: Response, tokens: IssuedTokens) {
+  const isProduction = env.NODE_ENV === 'production';
   res.cookie(REFRESH_TOKEN_COOKIE_NAME, tokens.refreshToken, {
     httpOnly: true,
-    secure: env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
     path: REFRESH_COOKIE_PATH,
     expires: tokens.refreshExpiresAt,
   });
