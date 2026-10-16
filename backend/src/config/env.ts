@@ -26,10 +26,25 @@ const envSchema = z.object({
   // Custom URL scheme the mobile app registers for deep-link callbacks (mediconnect://auth/callback).
   MOBILE_OAUTH_SCHEME: z.string().default('mediconnect'),
 
-  STORAGE_DRIVER: z.enum(['local']).default('local'),
+  STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
   STORAGE_LOCAL_ROOT: z.string().default('./storage'),
   STORAGE_PRIVATE_ROOT: z.string().default('./storage/private'),
   MAX_UPLOAD_SIZE_MB: z.coerce.number().int().positive().default(5),
+
+  // Required only when STORAGE_DRIVER=s3; validated at adapter construction time (see
+  // storage/s3.storage.ts) rather than here, so the app still boots without them when using the
+  // local driver.
+  AWS_S3_BUCKET: z.string().optional(),
+  AWS_REGION: z.string().optional(),
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  // Only needed for an S3-compatible provider that isn't AWS itself (e.g. Cloudflare R2,
+  // Backblaze B2, MinIO) — leave unset for real AWS S3.
+  AWS_S3_ENDPOINT: z.string().optional(),
+  AWS_S3_FORCE_PATH_STYLE: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
 
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
