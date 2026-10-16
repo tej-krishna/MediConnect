@@ -13,7 +13,8 @@ const NEARBY_RADIUS_KM = NEARBY_RADIUS_METERS / 1000;
 
 export function HealthCampSearchPage() {
   const { coords } = useUserLocation();
-  const [city, setCity] = useState('');
+  const [query, setQuery] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
   const [registeredIds, setRegisteredIds] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState<string | null>(null);
 
@@ -23,11 +24,25 @@ export function HealthCampSearchPage() {
   }
 
   const matched = useMemo(() => {
-    const c = city.trim().toLowerCase();
-    return MOCK_HEALTH_CAMPS.filter((camp) => (c ? camp.locationDescription.toLowerCase().includes(c) : true));
-  }, [city]);
+    const q = query.trim().toLowerCase();
+    return MOCK_HEALTH_CAMPS.filter((camp) => {
+      if (q) {
+        const haystack = [
+          camp.title,
+          camp.description ?? '',
+          camp.locationDescription,
+          camp.servicesOffered.join(' '),
+        ]
+          .join(' ')
+          .toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      if (dateFrom && camp.scheduledDate < dateFrom) return false;
+      return true;
+    });
+  }, [query, dateFrom]);
 
-  const cityActive = city.trim() !== '';
+  const filterActive = query.trim() !== '' || dateFrom !== '';
 
   const { results, usingFallback } = useMemo(() => {
     const withDistance = matched.map((camp) => ({
@@ -35,8 +50,11 @@ export function HealthCampSearchPage() {
       distance: coords && camp.location ? distanceMeters(coords, camp.location) : undefined,
     }));
 
-    if (!coords || cityActive) {
-      return { results: withDistance, usingFallback: false };
+    if (!coords || filterActive) {
+      return {
+        results: [...withDistance].sort((a, b) => a.camp.scheduledDate.localeCompare(b.camp.scheduledDate)),
+        usingFallback: false,
+      };
     }
 
     const nearby = withDistance
@@ -48,7 +66,7 @@ export function HealthCampSearchPage() {
     }
 
     return { results: nearby, usingFallback: false };
-  }, [matched, coords, cityActive]);
+  }, [matched, coords, filterActive]);
 
   const mapCenter = !coords || usingFallback ? NANDIGAMA_CENTER : coords;
 
@@ -70,8 +88,8 @@ export function HealthCampSearchPage() {
     }));
 
   let statusText: string;
-  if (cityActive) {
-    statusText = `Showing camps in "${city}"`;
+  if (filterActive) {
+    statusText = `Showing ${results.length} camp${results.length === 1 ? '' : 's'} matching your filters`;
   } else if (usingFallback) {
     statusText = `No demo camps within ${NEARBY_RADIUS_KM} km of you — showing samples near Nandigama (${NANDIGAMA_PINCODE})`;
   } else if (coords) {
@@ -86,9 +104,9 @@ export function HealthCampSearchPage() {
         <LocationMap
           markers={markers}
           center={mapCenter}
-          radiusMeters={cityActive ? undefined : NEARBY_RADIUS_METERS}
+          radiusMeters={filterActive ? undefined : NEARBY_RADIUS_METERS}
           radiusCenter={mapCenter}
-          userLocation={cityActive ? undefined : coords ?? undefined}
+          userLocation={filterActive ? undefined : coords ?? undefined}
         />
       }
     >
@@ -99,7 +117,18 @@ export function HealthCampSearchPage() {
       </div>
 
       <div className="city-form split-search__form">
-        <input placeholder="City or village" value={city} onChange={(e) => setCity(e.target.value)} />
+        <input
+          placeholder="Search by title, location, or service"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <input
+          type="date"
+          aria-label="Show camps from this date onward"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          style={{ maxWidth: 160 }}
+        />
       </div>
 
       <p className="text-muted split-search__status">{statusText}</p>
