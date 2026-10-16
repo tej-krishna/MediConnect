@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../app/AuthContext';
 import { ApiError } from '../services/apiClient';
 import { GoogleAuthButton } from '../components/GoogleAuthButton';
+import { AuthBrandPanel } from '../components/AuthBrandPanel';
 import './AuthForm.css';
 
 const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
@@ -45,7 +46,9 @@ export function LoginPage() {
   }
 
   return (
-    <div className="container auth-page">
+    <div className="auth-split">
+      <AuthBrandPanel />
+      <div className="auth-split__form">
       <div className="card auth-card">
         <h1>Log in</h1>
         {error && <div className="alert alert-error">{error}</div>}
@@ -84,6 +87,7 @@ export function LoginPage() {
         <p className="auth-switch">
           Don't have an account? <Link to="/register">Sign up</Link>
         </p>
+      </div>
       </div>
     </div>
   );

@@ -37,7 +37,11 @@ export function HealthCampSearchPage() {
 
   return (
     <div className="container search-page">
-      <h1>Find health camps near you</h1>
+      <div className="page-head">
+        <span className="eyebrow">Health camps</span>
+        <h1>Find health camps near you</h1>
+        <p className="text-muted">Free and low-cost community health camps, organized by city.</p>
+      </div>
       <p className="text-muted">Free and low-cost health camps run by mobile medical vans and NGOs.</p>
       <form onSubmit={handleSearch} className="city-form" style={{ maxWidth: 420, margin: '16px 0' }}>
         <input placeholder="City or village" value={city} onChange={(e) => setCity(e.target.value)} />

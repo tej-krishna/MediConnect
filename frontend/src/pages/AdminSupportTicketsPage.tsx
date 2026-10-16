@@ -39,7 +39,7 @@ export function AdminSupportTicketsPage() {
 
   return (
     <div className="container dashboard-page">
-      <h1>All support tickets</h1>
+      <div className="page-head"><h1>All support tickets</h1></div>
       {error && <div className="alert alert-error">{error}</div>}
       <table className="simple-table">
         <thead>

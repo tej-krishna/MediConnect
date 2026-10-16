@@ -36,7 +36,7 @@ export function MyCampRegistrationsPage() {
 
   return (
     <div className="container dashboard-page">
-      <h1>My camp registrations</h1>
+      <div className="page-head"><h1>My camp registrations</h1></div>
       {error && <div className="alert alert-error">{error}</div>}
       {registrations.length === 0 ? (
         <div className="page-empty">You haven't registered for any health camps yet.</div>

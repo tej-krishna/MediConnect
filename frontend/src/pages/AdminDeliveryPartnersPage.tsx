@@ -54,7 +54,7 @@ export function AdminDeliveryPartnersPage() {
 
   return (
     <div className="container dashboard-page">
-      <h1>Delivery partner applications</h1>
+      <div className="page-head"><h1>Delivery partner applications</h1></div>
       {error && <div className="alert alert-error">{error}</div>}
       <table className="simple-table">
         <thead>

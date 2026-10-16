@@ -1,7 +1,9 @@
+/* Simple centered-card layout: used by plain single-form pages (order flows, become-provider,
+   become-delivery-partner, book-care-offering) that don't have a brand panel. */
 .auth-page {
   display: flex;
   justify-content: center;
-  padding: 48px 16px;
+  padding: 48px 20px;
 }
 
 .auth-card {
@@ -9,24 +11,101 @@
   max-width: 420px;
 }
 
+/* Two-column layout with a brand panel: used only by the true auth flows (login/register/
+   forgot/reset password), via <AuthBrandPanel /> + .auth-split__form. */
+.auth-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-height: calc(100svh - var(--header-height));
+}
+
+.auth-split__brand {
+  background: var(--color-ink);
+  color: #fff;
+  padding: 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.auth-split__brand-top .eyebrow {
+  color: #5eead4;
+}
+
+.auth-split__brand h2 {
+  color: #fff;
+  font-size: 1.7rem;
+  max-width: 380px;
+  margin-top: 4px;
+}
+
+.auth-split__points {
+  list-style: none;
+  margin: 28px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.auth-split__points li {
+  display: flex;
+  gap: 10px;
+  font-size: 0.92rem;
+  color: rgba(255, 255, 255, 0.82);
+}
+.auth-split__points li::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #5eead4;
+  margin-top: 8px;
+  flex-shrink: 0;
+}
+
+.auth-split__brand-foot {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.auth-split__form {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  background: var(--color-surface);
+}
+
+.auth-split .auth-card {
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+.auth-card h1 {
+  font-size: 1.5rem;
+  margin-bottom: 4px;
+}
+
 .auth-switch {
   text-align: center;
-  margin-top: 16px;
-  font-size: 0.9rem;
+  margin-top: 20px;
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
 }
 
 .auth-forgot {
   text-align: right;
-  font-size: 0.85rem;
-  margin: -8px 0 16px;
+  font-size: 0.84rem;
+  margin: -8px 0 18px;
 }
 
 .auth-divider {
   display: flex;
   align-items: center;
-  margin: 20px 0;
-  color: var(--color-text-muted);
-  font-size: 0.85rem;
+  margin: 22px 0;
+  color: var(--color-text-faint);
+  font-size: 0.82rem;
 }
 .auth-divider::before,
 .auth-divider::after {
@@ -40,4 +119,16 @@
 
 .google-auth-btn {
   gap: 10px;
+}
+
+@media (max-width: 960px) {
+  .auth-split {
+    grid-template-columns: 1fr;
+  }
+  .auth-split__brand {
+    display: none;
+  }
+  .auth-split__form {
+    padding: 36px 20px;
+  }
 }

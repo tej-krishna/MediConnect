@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../services/apiClient';
+import { AuthBrandPanel } from '../components/AuthBrandPanel';
 import './AuthForm.css';
 
 export function ResetPasswordPage() {
@@ -27,7 +28,9 @@ export function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <div className="container auth-page">
+      <div className="auth-split">
+        <AuthBrandPanel />
+        <div className="auth-split__form">
         <div className="card auth-card">
           <h1>Reset password</h1>
           <p>This reset link is missing its token. Request a new one from the forgot password page.</p>
@@ -35,12 +38,15 @@ export function ResetPasswordPage() {
             <Link to="/forgot-password">Request a new link</Link>
           </p>
         </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container auth-page">
+    <div className="auth-split">
+      <AuthBrandPanel />
+      <div className="auth-split__form">
       <div className="card auth-card">
         <h1>Set a new password</h1>
         {error && <div className="alert alert-error">{error}</div>}
@@ -61,6 +67,7 @@ export function ResetPasswordPage() {
             {submitting ? 'Updating…' : 'Update password'}
           </button>
         </form>
+      </div>
       </div>
     </div>
   );

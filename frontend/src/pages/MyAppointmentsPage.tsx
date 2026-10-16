@@ -37,7 +37,7 @@ export function MyAppointmentsPage() {
 
   return (
     <div className="container dashboard-page">
-      <h1>My appointments</h1>
+      <div className="page-head"><h1>My appointments</h1></div>
       {error && <div className="alert alert-error">{error}</div>}
       {appointments.length === 0 ? (
         <div className="page-empty">You don't have any appointments yet.</div>

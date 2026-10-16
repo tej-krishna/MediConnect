@@ -48,7 +48,7 @@ export function AdminTransactionsPage() {
 
   return (
     <div className="container dashboard-page">
-      <h1>Refund transactions</h1>
+      <div className="page-head"><h1>Refund transactions</h1></div>
       <p className="text-muted">
         No payment gateway is integrated yet — these are manual-review refund requests raised from support
         tickets. Settling one here only records that a human processed it outside the platform.

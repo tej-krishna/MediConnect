@@ -41,7 +41,7 @@ export function MyCareRequestsPage() {
 
   return (
     <div className="container dashboard-page">
-      <h1>My equipment & home-care requests</h1>
+      <div className="page-head"><h1>My equipment & home-care requests</h1></div>
       {error && <div className="alert alert-error">{error}</div>}
       {requests.length === 0 ? (
         <div className="page-empty">You haven't requested any equipment or home-care services yet.</div>

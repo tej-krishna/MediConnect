@@ -39,7 +39,7 @@ export function MyOrdersPage() {
 
   return (
     <div className="container dashboard-page">
-      <h1>My orders</h1>
+      <div className="page-head"><h1>My orders</h1></div>
       {error && <div className="alert alert-error">{error}</div>}
       {orders.length === 0 ? (
         <div className="page-empty">You haven't placed any medicine orders yet.</div>

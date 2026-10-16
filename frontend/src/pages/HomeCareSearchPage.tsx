@@ -28,7 +28,11 @@ export function HomeCareSearchPage() {
 
   return (
     <div className="container search-page">
-      <h1>Medical equipment & home healthcare</h1>
+      <div className="page-head">
+        <span className="eyebrow">Home care</span>
+        <h1>Medical equipment & home healthcare</h1>
+        <p className="text-muted">Rent equipment or book in-home nursing and care services.</p>
+      </div>
       <p className="text-muted">Rent or buy equipment, or book a home nursing / physiotherapy visit.</p>
       <form onSubmit={handleSearch} className="city-form" style={{ maxWidth: 480, margin: '16px 0' }}>
         <input placeholder="e.g. wheelchair, nursing, physiotherapy" value={query} onChange={(e) => setQuery(e.target.value)} />

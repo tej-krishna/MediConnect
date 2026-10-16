@@ -519,8 +519,10 @@ export function ProviderDashboardPage() {
 
   return (
     <div className="container dashboard-page">
-      <h1>{application.organizationName}</h1>
-      <p className="text-muted">{PROVIDER_TYPE_LABELS[application.providerType] ?? application.providerType}</p>
+      <div className="page-head">
+        <h1>{application.organizationName}</h1>
+        <p className="text-muted">{PROVIDER_TYPE_LABELS[application.providerType] ?? application.providerType}</p>
+      </div>
 
       {error && <div className="alert alert-error">{error}</div>}
       {message && <div className="alert alert-success">{message}</div>}

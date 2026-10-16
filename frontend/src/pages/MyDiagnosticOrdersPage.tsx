@@ -48,7 +48,7 @@ export function MyDiagnosticOrdersPage() {
 
   return (
     <div className="container dashboard-page">
-      <h1>My diagnostic tests</h1>
+      <div className="page-head"><h1>My diagnostic tests</h1></div>
       {error && <div className="alert alert-error">{error}</div>}
       {orders.length === 0 ? (
         <div className="page-empty">You haven't booked any diagnostic tests yet.</div>

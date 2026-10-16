@@ -55,7 +55,7 @@ export function AdminProviderApplicationsPage() {
 
   return (
     <div className="container dashboard-page">
-      <h1>Provider applications</h1>
+      <div className="page-head"><h1>Provider applications</h1></div>
       {error && <div className="alert alert-error">{error}</div>}
       <div className="inline-form" style={{ marginBottom: 12 }}>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>

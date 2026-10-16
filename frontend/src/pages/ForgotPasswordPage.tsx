@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/apiClient';
+import { AuthBrandPanel } from '../components/AuthBrandPanel';
 import './AuthForm.css';
 
 export function ForgotPasswordPage() {
@@ -21,7 +22,9 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <div className="container auth-page">
+    <div className="auth-split">
+      <AuthBrandPanel />
+      <div className="auth-split__form">
       <div className="card auth-card">
         <h1>Forgot password</h1>
         {submitted ? (
@@ -47,6 +50,7 @@ export function ForgotPasswordPage() {
         <p className="auth-switch">
           <Link to="/login">Back to log in</Link>
         </p>
+      </div>
       </div>
     </div>
   );

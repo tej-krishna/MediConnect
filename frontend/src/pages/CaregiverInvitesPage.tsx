@@ -51,7 +51,7 @@ export function CaregiverInvitesPage() {
 
   return (
     <div className="container dashboard-page">
-      <h1>Caregiver invites</h1>
+      <div className="page-head"><h1>Caregiver invites</h1></div>
       {error && <div className="alert alert-error">{error}</div>}
 
       <div className="card">

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../app/AuthContext';
 import { ApiError } from '../services/apiClient';
 import { GoogleAuthButton } from '../components/GoogleAuthButton';
+import { AuthBrandPanel } from '../components/AuthBrandPanel';
 import './AuthForm.css';
 
 export function RegisterPage() {
@@ -30,7 +31,9 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="container auth-page">
+    <div className="auth-split">
+      <AuthBrandPanel />
+      <div className="auth-split__form">
       <div className="card auth-card">
         <h1>Create your account</h1>
         <p className="text-muted">Patient accounts are free. Providers apply for verification separately.</p>
@@ -79,6 +82,7 @@ export function RegisterPage() {
         <p className="auth-switch">
           Already have an account? <Link to="/login">Log in</Link>
         </p>
+      </div>
       </div>
     </div>
   );

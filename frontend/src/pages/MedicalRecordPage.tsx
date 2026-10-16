@@ -220,8 +220,10 @@ export function MedicalRecordPage() {
 
   return (
     <div className="container dashboard-page">
-      <h1>{isSelf ? 'My medical record' : 'Medical record'}</h1>
-      {!isSelf && <p className="text-muted">You're viewing this record as an authorized caregiver.</p>}
+      <div className="page-head">
+        <h1>{isSelf ? 'My medical record' : 'Medical record'}</h1>
+        {!isSelf && <p className="text-muted">You're viewing this record as an authorized caregiver.</p>}
+      </div>
       {error && <div className="alert alert-error">{error}</div>}
       {message && <div className="alert alert-success">{message}</div>}
 

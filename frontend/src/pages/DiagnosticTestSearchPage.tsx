@@ -27,7 +27,11 @@ export function DiagnosticTestSearchPage() {
 
   return (
     <div className="container search-page">
-      <h1>Find diagnostic tests</h1>
+      <div className="page-head">
+        <span className="eyebrow">Diagnostics</span>
+        <h1>Find diagnostic tests</h1>
+        <p className="text-muted">Compare prices and home-collection options across verified labs.</p>
+      </div>
       <form onSubmit={handleSearch} className="city-form" style={{ maxWidth: 480, margin: '16px 0' }}>
         <input placeholder="Test or category (e.g. CBC, X-Ray)" value={query} onChange={(e) => setQuery(e.target.value)} />
         <input placeholder="City (optional)" value={city} onChange={(e) => setCity(e.target.value)} style={{ maxWidth: 160 }} />

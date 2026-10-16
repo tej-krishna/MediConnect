@@ -53,7 +53,7 @@ export function SupportPage() {
 
   return (
     <div className="container dashboard-page">
-      <h1>Help & support</h1>
+      <div className="page-head"><h1>Help & support</h1></div>
       {error && <div className="alert alert-error">{error}</div>}
       {message && <div className="alert alert-success">{message}</div>}
 

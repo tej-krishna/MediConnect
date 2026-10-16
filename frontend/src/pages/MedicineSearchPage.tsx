@@ -27,7 +27,11 @@ export function MedicineSearchPage() {
 
   return (
     <div className="container search-page">
-      <h1>Find medicines</h1>
+      <div className="page-head">
+        <span className="eyebrow">Pharmacy</span>
+        <h1>Find medicines</h1>
+        <p className="text-muted">Search in-stock medicines and generic alternatives from verified pharmacies.</p>
+      </div>
       <form onSubmit={handleSearch} className="city-form" style={{ maxWidth: 480, margin: '16px 0' }}>
         <input placeholder="Medicine or generic name" value={query} onChange={(e) => setQuery(e.target.value)} />
         <input placeholder="City (optional)" value={city} onChange={(e) => setCity(e.target.value)} style={{ maxWidth: 160 }} />

@@ -55,7 +55,11 @@ export function ProviderSearchPage() {
 
   return (
     <div className="container search-page">
-      <h1>Find care near you</h1>
+      <div className="page-head">
+        <span className="eyebrow">Find care</span>
+        <h1>Find care near you</h1>
+        <p className="text-muted">Search verified doctors, hospitals, clinics, and labs by location or city.</p>
+      </div>
 
       {!hasSearchContext && (
         <div className="card location-prompt">

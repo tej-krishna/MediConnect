@@ -1,10 +1,7 @@
 .dashboard-page {
-  padding: 32px 16px 64px;
-  max-width: 720px;
+  padding: 28px 20px 64px;
+  max-width: 760px;
   margin: 0 auto;
-}
-
-.dashboard-page {
   /* A wide .simple-table (several text columns plus inline inputs) can need more width than a
      narrow viewport has, whether or not it's wrapped in a .card — several admin list pages render
      the table directly inside .dashboard-page. Scrolling the page's own content area horizontally
@@ -13,6 +10,10 @@
      viewport, found via a real mobile-width check (comparing scrollWidth/clientWidth), not just
      visual inspection — a visual check alone missed it because the overflow is a thin sliver. */
   overflow-x: auto;
+}
+
+.dashboard-page > h1:first-child {
+  margin-bottom: 20px;
 }
 
 .dashboard-page .card {
@@ -36,12 +37,32 @@
   width: 100%;
   border-collapse: collapse;
   margin-top: 12px;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
-.simple-table th,
+.simple-table th {
+  text-align: left;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--color-border-strong);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
 .simple-table td {
   text-align: left;
-  padding: 6px 8px;
+  padding: 10px;
   border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.simple-table tbody tr:hover td {
+  background: var(--color-surface-alt);
+}
+
+.simple-table tbody tr:last-child td {
+  border-bottom: none;
 }

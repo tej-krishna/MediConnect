@@ -84,7 +84,7 @@ export function AdminEmergencyGuidesPage() {
 
   return (
     <div className="container dashboard-page">
-      <h1>Emergency guidance content</h1>
+      <div className="page-head"><h1>Emergency guidance content</h1></div>
       <p className="text-muted">
         This content is shown on the public emergency page without login. Mark a guide "clinically
         reviewed" only once an actual qualified clinician has signed off on it.

@@ -74,11 +74,11 @@ export function ProviderDetailPage() {
     }
   }
 
-  if (loading) return <div className="page-loading">Loading provider…</div>;
+  if (loading) return <div className="container page-loading">Loading provider…</div>;
 
   if (notFound || !provider) {
     return (
-      <div className="page-error">
+      <div className="container page-error">
         <h1>Provider not found</h1>
         <p>This provider may no longer be verified or active on MediConnect.</p>
         <Link to="/providers" className="btn btn-primary">
@@ -94,13 +94,21 @@ export function ProviderDetailPage() {
 
   return (
     <div className="container detail-page">
-      <Link to="/providers" className="text-muted">
+      <Link to="/providers" className="detail-page__back">
         ← Back to search
       </Link>
 
       <div className="card detail-card">
         <div className="detail-card__header">
-          <div>
+          <div className="detail-card__avatar">
+            {provider.organizationName
+              .split(' ')
+              .filter(Boolean)
+              .slice(0, 2)
+              .map((part) => part[0]?.toUpperCase())
+              .join('')}
+          </div>
+          <div className="detail-card__title">
             <h1>{provider.organizationName}</h1>
             <p className="text-muted">{PROVIDER_TYPE_LABELS[provider.providerType] ?? provider.providerType}</p>
           </div>
@@ -155,12 +163,14 @@ export function ProviderDetailPage() {
           <ul className="slot-list">
             {slots.map((slot) => (
               <li key={slot.id} className="slot-list__item">
-                <span>
-                  {new Date(slot.startTime).toLocaleString()} ({slot.remaining} spot
-                  {slot.remaining === 1 ? '' : 's'} left)
-                </span>
+                <div>
+                  <strong>{new Date(slot.startTime).toLocaleString()}</strong>
+                  <span className="text-muted slot-list__spots">
+                    {slot.remaining} spot{slot.remaining === 1 ? '' : 's'} left
+                  </span>
+                </div>
                 <button
-                  className="btn btn-primary"
+                  className="btn btn-primary btn-sm"
                   disabled={bookingSlotId === slot.id}
                   onClick={() => handleBook(slot.id)}
                 >

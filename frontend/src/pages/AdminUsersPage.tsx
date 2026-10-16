@@ -55,7 +55,7 @@ export function AdminUsersPage() {
 
   return (
     <div className="container dashboard-page">
-      <h1>Users</h1>
+      <div className="page-head"><h1>Users</h1></div>
       {error && <div className="alert alert-error">{error}</div>}
       <form onSubmit={handleSearch} className="city-form" style={{ maxWidth: 420, margin: '16px 0' }}>
         <input placeholder="Search by name or email" value={search} onChange={(e) => setSearch(e.target.value)} />

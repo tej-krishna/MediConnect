@@ -4,6 +4,8 @@ import { useAuth } from '../app/AuthContext';
 import { getAnalyticsOverview } from '../services/adminService';
 import type { AnalyticsOverview } from '../types/admin';
 import './ProviderDashboardPage.css';
+import './AccountPage.css';
+import './AdminDashboardPage.css';
 
 export function AdminDashboardPage() {
   const { user } = useAuth();
@@ -27,39 +29,56 @@ export function AdminDashboardPage() {
 
   return (
     <div className="container dashboard-page">
-      <h1>Admin dashboard</h1>
+      <div className="page-head"><h1>Admin dashboard</h1></div>
 
-      <div className="card">
+      {overview && (
+        <div className="admin-stat-row">
+          <Link to="/admin/provider-applications" className="admin-stat-tile">
+            <span className="admin-stat-tile__value">{overview.moderation.pendingProviderApplications}</span>
+            <span className="admin-stat-tile__label">Provider applications pending</span>
+          </Link>
+          <Link to="/admin/delivery-partners" className="admin-stat-tile">
+            <span className="admin-stat-tile__value">{overview.moderation.pendingDeliveryPartners}</span>
+            <span className="admin-stat-tile__label">Delivery partners pending</span>
+          </Link>
+          <Link to="/admin/support-tickets" className="admin-stat-tile">
+            <span className="admin-stat-tile__value">{overview.moderation.openSupportTickets}</span>
+            <span className="admin-stat-tile__label">Support tickets open</span>
+          </Link>
+        </div>
+      )}
+
+      <div className="card account-section">
         <h3>Verification and moderation</h3>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <Link className="btn btn-secondary" to="/admin/provider-applications">
-            Provider applications{overview ? ` (${overview.moderation.pendingProviderApplications} pending)` : ''}
+        <div className="account-links">
+          <Link className="account-links__item" to="/admin/provider-applications">
+            Provider applications
           </Link>
-          <Link className="btn btn-secondary" to="/admin/delivery-partners">
-            Delivery partners{overview ? ` (${overview.moderation.pendingDeliveryPartners} pending)` : ''}
+          <Link className="account-links__item" to="/admin/delivery-partners">
+            Delivery partners
           </Link>
-          <Link className="btn btn-secondary" to="/admin/support-tickets">
-            Support tickets{overview ? ` (${overview.moderation.openSupportTickets} open)` : ''}
+          <Link className="account-links__item" to="/admin/support-tickets">
+            Support tickets
           </Link>
-          <Link className="btn btn-secondary" to="/admin/users">
+          <Link className="account-links__item" to="/admin/users">
             Users
           </Link>
-          <Link className="btn btn-secondary" to="/admin/emergency-guides">
+          <Link className="account-links__item" to="/admin/emergency-guides">
             Emergency guidance
           </Link>
         </div>
       </div>
 
-      <div className="card">
+      <div className="card account-section">
         <h3>Revenue and operations</h3>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <Link className="btn btn-secondary" to="/admin/analytics">
+        <div className="account-links">
+          <Link className="account-links__item" to="/admin/analytics">
             Analytics & commission
           </Link>
-          <Link className="btn btn-secondary" to="/admin/transactions">
+          <Link className="account-links__item" to="/admin/transactions">
             Refund transactions
           </Link>
-          <Link className="btn btn-secondary" to="/admin/audit-log">
+          <Link className="account-links__item" to="/admin/audit-log">
             Audit log
           </Link>
         </div>
