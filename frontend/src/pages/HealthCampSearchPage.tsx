@@ -1,48 +1,56 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { useGeolocation } from '../hooks/useGeolocation';
+import { useMemo, useState } from 'react';
+import { useUserLocation } from '../app/UserLocationContext';
 import { SplitSearchLayout } from '../components/SplitSearchLayout';
 import { LocationMap, type LocationMapMarker } from '../components/LocationMap';
 import { MOCK_HEALTH_CAMPS } from '../data/mockHealthCamps';
 import { NANDIGAMA_CENTER, NANDIGAMA_PINCODE } from '../data/mockNandigamaProviders';
-import { distanceMeters, formatDistance } from '../utils/geo';
+import { distanceMeters, formatDistance, NEARBY_RADIUS_METERS } from '../utils/geo';
 import '../components/SplitSearchLayout.css';
 import './ProviderSearchPage.css';
 
 const CAMP_COLOR = '#be185d';
+const NEARBY_RADIUS_KM = NEARBY_RADIUS_METERS / 1000;
 
 export function HealthCampSearchPage() {
-  const { coords, requestLocation } = useGeolocation();
+  const { coords } = useUserLocation();
   const [city, setCity] = useState('');
-  const [activeCity, setActiveCity] = useState('');
   const [registeredIds, setRegisteredIds] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    requestLocation();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function handleSearch(e: FormEvent) {
-    e.preventDefault();
-    setActiveCity(city);
-  }
 
   function handleRegister(campId: string) {
     setRegisteredIds((prev) => new Set(prev).add(campId));
     setMessage('Registered! (Demo data — this will sync to "My camps" once camps go live in your area.)');
   }
 
-  const results = useMemo(() => {
-    const c = activeCity.trim().toLowerCase();
-    return MOCK_HEALTH_CAMPS.filter((camp) => (c ? camp.locationDescription.toLowerCase().includes(c) : true))
-      .map((camp) => ({
-        camp,
-        distance: coords && camp.location ? distanceMeters(coords, camp.location) : undefined,
-      }))
-      .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
-  }, [activeCity, coords]);
+  const matched = useMemo(() => {
+    const c = city.trim().toLowerCase();
+    return MOCK_HEALTH_CAMPS.filter((camp) => (c ? camp.locationDescription.toLowerCase().includes(c) : true));
+  }, [city]);
 
-  const mapCenter = coords ?? NANDIGAMA_CENTER;
+  const cityActive = city.trim() !== '';
+
+  const { results, usingFallback } = useMemo(() => {
+    const withDistance = matched.map((camp) => ({
+      camp,
+      distance: coords && camp.location ? distanceMeters(coords, camp.location) : undefined,
+    }));
+
+    if (!coords || cityActive) {
+      return { results: withDistance, usingFallback: false };
+    }
+
+    const nearby = withDistance
+      .filter((entry) => (entry.distance ?? Infinity) <= NEARBY_RADIUS_METERS)
+      .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
+
+    if (nearby.length === 0 && withDistance.length > 0) {
+      return { results: matched.map((camp) => ({ camp, distance: undefined })), usingFallback: true };
+    }
+
+    return { results: nearby, usingFallback: false };
+  }, [matched, coords, cityActive]);
+
+  const mapCenter = !coords || usingFallback ? NANDIGAMA_CENTER : coords;
 
   const markers: LocationMapMarker[] = results
     .filter(({ camp }) => camp.location !== null)
@@ -61,26 +69,39 @@ export function HealthCampSearchPage() {
       ),
     }));
 
+  let statusText: string;
+  if (cityActive) {
+    statusText = `Showing camps in "${city}"`;
+  } else if (usingFallback) {
+    statusText = `No demo camps within ${NEARBY_RADIUS_KM} km of you — showing samples near Nandigama (${NANDIGAMA_PINCODE})`;
+  } else if (coords) {
+    statusText = `Showing ${results.length} camp${results.length === 1 ? '' : 's'} within ${NEARBY_RADIUS_KM} km of your location`;
+  } else {
+    statusText = `Showing sample camps near Nandigama (${NANDIGAMA_PINCODE})`;
+  }
+
   return (
-    <SplitSearchLayout map={<LocationMap markers={markers} center={mapCenter} />}>
+    <SplitSearchLayout
+      map={
+        <LocationMap
+          markers={markers}
+          center={mapCenter}
+          radiusMeters={cityActive ? undefined : NEARBY_RADIUS_METERS}
+          radiusCenter={mapCenter}
+        />
+      }
+    >
       <div className="page-head">
         <span className="eyebrow">Health camps</span>
         <h1>Find health camps near you</h1>
         <p className="text-muted">Free and low-cost community health camps, run by mobile medical vans and NGOs.</p>
       </div>
 
-      <form onSubmit={handleSearch} className="city-form split-search__form">
+      <div className="city-form split-search__form">
         <input placeholder="City or village" value={city} onChange={(e) => setCity(e.target.value)} />
-        <button type="submit" className="btn btn-primary">
-          Search
-        </button>
-      </form>
+      </div>
 
-      <p className="text-muted split-search__status">
-        {coords
-          ? `Showing ${results.length} camp${results.length === 1 ? '' : 's'} near your location`
-          : `Showing sample camps near Nandigama (${NANDIGAMA_PINCODE})`}
-      </p>
+      <p className="text-muted split-search__status">{statusText}</p>
       <p className="text-muted split-search__demo-note">
         Demo data — these camps are samples until real ones are scheduled in your area.
       </p>

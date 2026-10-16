@@ -1,58 +1,61 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { useGeolocation } from '../hooks/useGeolocation';
+import { useMemo, useState } from 'react';
+import { useUserLocation } from '../app/UserLocationContext';
 import { SplitSearchLayout } from '../components/SplitSearchLayout';
 import { LocationMap, type LocationMapMarker } from '../components/LocationMap';
 import { MOCK_LABS } from '../data/mockLabs';
 import { NANDIGAMA_CENTER, NANDIGAMA_PINCODE } from '../data/mockNandigamaProviders';
-import { distanceMeters, formatDistance } from '../utils/geo';
+import { distanceMeters, formatDistance, NEARBY_RADIUS_METERS } from '../utils/geo';
 import '../components/SplitSearchLayout.css';
 import './ProviderSearchPage.css';
 
 const LAB_COLOR = '#d97706';
+const NEARBY_RADIUS_KM = NEARBY_RADIUS_METERS / 1000;
 
 export function DiagnosticTestSearchPage() {
-  const { coords, requestLocation } = useGeolocation();
+  const { coords } = useUserLocation();
   const [query, setQuery] = useState('');
   const [city, setCity] = useState('');
-  const [activeQuery, setActiveQuery] = useState('');
-  const [activeCity, setActiveCity] = useState('');
 
-  useEffect(() => {
-    requestLocation();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function handleSearch(e: FormEvent) {
-    e.preventDefault();
-    setActiveQuery(query);
-    setActiveCity(city);
-  }
-
-  const results = useMemo(() => {
-    const q = activeQuery.trim().toLowerCase();
-    const c = activeCity.trim().toLowerCase();
+  const matched = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const c = city.trim().toLowerCase();
 
     return MOCK_LABS.map((lab) => {
       const tests = q
-        ? lab.tests.filter(
-            (test) => test.name.toLowerCase().includes(q) || test.category.toLowerCase().includes(q),
-          )
+        ? lab.tests.filter((test) => test.name.toLowerCase().includes(q) || test.category.toLowerCase().includes(q))
         : lab.tests;
       return { lab, tests };
-    })
-      .filter(({ lab, tests }) => {
-        if (q && tests.length === 0) return false;
-        if (c && !lab.address.city.toLowerCase().includes(c)) return false;
-        return true;
-      })
-      .map((entry) => ({
-        ...entry,
-        distance: coords ? distanceMeters(coords, entry.lab.location) : undefined,
-      }))
-      .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
-  }, [activeQuery, activeCity, coords]);
+    }).filter(({ lab, tests }) => {
+      if (q && tests.length === 0) return false;
+      if (c && !lab.address.city.toLowerCase().includes(c)) return false;
+      return true;
+    });
+  }, [query, city]);
 
-  const mapCenter = coords ?? NANDIGAMA_CENTER;
+  const cityActive = city.trim() !== '';
+
+  const { results, usingFallback } = useMemo(() => {
+    const withDistance = matched.map((entry) => ({
+      ...entry,
+      distance: coords ? distanceMeters(coords, entry.lab.location) : undefined,
+    }));
+
+    if (!coords || cityActive) {
+      return { results: withDistance, usingFallback: false };
+    }
+
+    const nearby = withDistance
+      .filter((entry) => (entry.distance ?? Infinity) <= NEARBY_RADIUS_METERS)
+      .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
+
+    if (nearby.length === 0 && withDistance.length > 0) {
+      return { results: matched.map((entry) => ({ ...entry, distance: undefined })), usingFallback: true };
+    }
+
+    return { results: nearby, usingFallback: false };
+  }, [matched, coords, cityActive]);
+
+  const mapCenter = !coords || usingFallback ? NANDIGAMA_CENTER : coords;
 
   const markers: LocationMapMarker[] = results.map(({ lab, tests }) => ({
     id: lab.id,
@@ -69,27 +72,40 @@ export function DiagnosticTestSearchPage() {
     ),
   }));
 
+  let statusText: string;
+  if (cityActive) {
+    statusText = `Showing labs in "${city}"`;
+  } else if (usingFallback) {
+    statusText = `No demo labs within ${NEARBY_RADIUS_KM} km of you — showing samples near Nandigama (${NANDIGAMA_PINCODE})`;
+  } else if (coords) {
+    statusText = `Showing ${results.length} lab${results.length === 1 ? '' : 's'} within ${NEARBY_RADIUS_KM} km of your location`;
+  } else {
+    statusText = `Showing sample labs near Nandigama (${NANDIGAMA_PINCODE})`;
+  }
+
   return (
-    <SplitSearchLayout map={<LocationMap markers={markers} center={mapCenter} />}>
+    <SplitSearchLayout
+      map={
+        <LocationMap
+          markers={markers}
+          center={mapCenter}
+          radiusMeters={cityActive ? undefined : NEARBY_RADIUS_METERS}
+          radiusCenter={mapCenter}
+        />
+      }
+    >
       <div className="page-head">
         <span className="eyebrow">Diagnostics</span>
         <h1>Find diagnostic tests</h1>
         <p className="text-muted">Compare prices and home-collection options across nearby labs.</p>
       </div>
 
-      <form onSubmit={handleSearch} className="city-form split-search__form">
+      <div className="city-form split-search__form">
         <input placeholder="Test or category (e.g. CBC, X-Ray)" value={query} onChange={(e) => setQuery(e.target.value)} />
         <input placeholder="City (optional)" value={city} onChange={(e) => setCity(e.target.value)} style={{ maxWidth: 140 }} />
-        <button type="submit" className="btn btn-primary">
-          Search
-        </button>
-      </form>
+      </div>
 
-      <p className="text-muted split-search__status">
-        {coords
-          ? `Showing ${results.length} lab${results.length === 1 ? '' : 's'} near your location`
-          : `Showing sample labs near Nandigama (${NANDIGAMA_PINCODE})`}
-      </p>
+      <p className="text-muted split-search__status">{statusText}</p>
       <p className="text-muted split-search__demo-note">
         Demo data — booking opens once labs register in your area.
       </p>

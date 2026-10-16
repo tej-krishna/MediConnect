@@ -1,5 +1,8 @@
 import type { LatLng } from '../types/provider';
 
+/** Default "near me" radius used across the map pages (Find Care, Medicines, Tests, Health camps). */
+export const NEARBY_RADIUS_METERS = 2000;
+
 /** Great-circle distance between two points, in meters. */
 export function distanceMeters(a: LatLng, b: LatLng): number {
   const R = 6371000;

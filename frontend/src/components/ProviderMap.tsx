@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
+import { Circle, MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import { Link } from 'react-router-dom';
 import type { LatLng, PublicProvider } from '../types/provider';
 import { PROVIDER_TYPE_LABELS } from '../services/providerService';
@@ -47,9 +47,19 @@ interface ProviderMapProps {
   zoom?: number;
   heightPx?: number;
   fullscreen?: boolean;
+  radiusMeters?: number;
+  radiusCenter?: LatLng;
 }
 
-export function ProviderMap({ providers, center, zoom = 13, heightPx = 440, fullscreen = false }: ProviderMapProps) {
+export function ProviderMap({
+  providers,
+  center,
+  zoom = 14,
+  heightPx = 440,
+  fullscreen = false,
+  radiusMeters,
+  radiusCenter,
+}: ProviderMapProps) {
   const located = providers.filter((p): p is PublicProvider & { location: LatLng } => p.location !== null);
   const typesPresent = Array.from(new Set(located.map((p) => p.providerType)));
 
@@ -66,6 +76,13 @@ export function ProviderMap({ providers, center, zoom = 13, heightPx = 440, full
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <RecenterOnChange center={center} zoom={zoom} />
+        {radiusMeters !== undefined && (
+          <Circle
+            center={[(radiusCenter ?? center).lat, (radiusCenter ?? center).lng]}
+            radius={radiusMeters}
+            pathOptions={{ color: '#0d9488', weight: 1.5, fillColor: '#0d9488', fillOpacity: 0.08 }}
+          />
+        )}
         {located.map((provider) => (
           <Marker
             key={provider.id}
