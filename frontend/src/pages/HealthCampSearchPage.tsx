@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState } from 'react';
 import { useUserLocation } from '../app/UserLocationContext';
 import { SplitSearchLayout } from '../components/SplitSearchLayout';
 import { LocationMap, type LocationMapMarker } from '../components/LocationMap';
@@ -14,14 +14,8 @@ const NEARBY_RADIUS_KM = NEARBY_RADIUS_METERS / 1000;
 export function HealthCampSearchPage() {
   const { coords } = useUserLocation();
   const [city, setCity] = useState('');
-  const [activeCity, setActiveCity] = useState('');
   const [registeredIds, setRegisteredIds] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState<string | null>(null);
-
-  function handleSearch(e: FormEvent) {
-    e.preventDefault();
-    setActiveCity(city);
-  }
 
   function handleRegister(campId: string) {
     setRegisteredIds((prev) => new Set(prev).add(campId));
@@ -29,11 +23,11 @@ export function HealthCampSearchPage() {
   }
 
   const matched = useMemo(() => {
-    const c = activeCity.trim().toLowerCase();
+    const c = city.trim().toLowerCase();
     return MOCK_HEALTH_CAMPS.filter((camp) => (c ? camp.locationDescription.toLowerCase().includes(c) : true));
-  }, [activeCity]);
+  }, [city]);
 
-  const cityActive = activeCity.trim() !== '';
+  const cityActive = city.trim() !== '';
 
   const { results, usingFallback } = useMemo(() => {
     const withDistance = matched.map((camp) => ({
@@ -77,7 +71,7 @@ export function HealthCampSearchPage() {
 
   let statusText: string;
   if (cityActive) {
-    statusText = `Showing camps in "${activeCity}"`;
+    statusText = `Showing camps in "${city}"`;
   } else if (usingFallback) {
     statusText = `No demo camps within ${NEARBY_RADIUS_KM} km of you — showing samples near Nandigama (${NANDIGAMA_PINCODE})`;
   } else if (coords) {
@@ -103,12 +97,9 @@ export function HealthCampSearchPage() {
         <p className="text-muted">Free and low-cost community health camps, run by mobile medical vans and NGOs.</p>
       </div>
 
-      <form onSubmit={handleSearch} className="city-form split-search__form">
+      <div className="city-form split-search__form">
         <input placeholder="City or village" value={city} onChange={(e) => setCity(e.target.value)} />
-        <button type="submit" className="btn btn-primary">
-          Search
-        </button>
-      </form>
+      </div>
 
       <p className="text-muted split-search__status">{statusText}</p>
       <p className="text-muted split-search__demo-note">

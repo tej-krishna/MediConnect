@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { useUserLocation } from '../app/UserLocationContext';
 import { searchProviders, PROVIDER_TYPE_LABELS } from '../services/providerService';
 import type { PublicProvider } from '../types/provider';
@@ -8,6 +8,7 @@ import { NEARBY_RADIUS_METERS } from '../utils/geo';
 import './ProviderSearchPage.css';
 
 const NEARBY_RADIUS_KM = NEARBY_RADIUS_METERS / 1000;
+const CITY_DEBOUNCE_MS = 350;
 
 function SearchIcon() {
   return (
@@ -37,9 +38,18 @@ export function ProviderSearchPage() {
   const [error, setError] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
 
+  // Live search: re-derive the active city from what's typed, a little after
+  // the user stops typing, instead of requiring an explicit Search click.
+  useEffect(() => {
+    const trimmed = cityInput.trim();
+    const timer = setTimeout(() => {
+      setActiveCity(trimmed ? trimmed : null);
+    }, CITY_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [cityInput]);
+
   const hasSearchContext = coords !== null || activeCity !== null;
   const displayProviders = hasSearchContext ? providers ?? [] : MOCK_NANDIGAMA_PROVIDERS;
-  const effectiveCenter = coords ?? NANDIGAMA_CENTER;
   const mapCenter = hasSearchContext ? coords ?? displayProviders.find((p) => p.location)?.location ?? NANDIGAMA_CENTER : NANDIGAMA_CENTER;
 
   useEffect(() => {
@@ -50,9 +60,9 @@ export function ProviderSearchPage() {
     setError(null);
 
     searchProviders({
-      lat: coords?.lat,
-      lng: coords?.lng,
-      city: coords ? undefined : activeCity ?? undefined,
+      lat: activeCity ? undefined : coords?.lat,
+      lng: activeCity ? undefined : coords?.lng,
+      city: activeCity ?? undefined,
       providerType: providerType || undefined,
       radiusKm: NEARBY_RADIUS_KM,
     })
@@ -71,13 +81,6 @@ export function ProviderSearchPage() {
     };
   }, [coords, activeCity, providerType, hasSearchContext]);
 
-  function handleCitySubmit(e: FormEvent) {
-    e.preventDefault();
-    if (cityInput.trim()) {
-      setActiveCity(cityInput.trim());
-    }
-  }
-
   function handleClearCity() {
     setActiveCity(null);
     setProviders(null);
@@ -89,8 +92,8 @@ export function ProviderSearchPage() {
       <ProviderMap
         providers={displayProviders}
         center={mapCenter}
-        radiusMeters={NEARBY_RADIUS_METERS}
-        radiusCenter={coords ?? effectiveCenter}
+        radiusMeters={activeCity ? undefined : NEARBY_RADIUS_METERS}
+        radiusCenter={coords ?? NANDIGAMA_CENTER}
         fullscreen
       />
 
@@ -129,16 +132,13 @@ export function ProviderSearchPage() {
               <p className="text-muted map-search__status">Finding your location…</p>
             )}
 
-            <form onSubmit={handleCitySubmit} className="city-form">
+            <div className="city-form">
               <input
                 placeholder="e.g. Pune, Nashik"
                 value={cityInput}
                 onChange={(e) => setCityInput(e.target.value)}
               />
-              <button type="submit" className="btn btn-secondary">
-                Search
-              </button>
-            </form>
+            </div>
 
             {!hasSearchContext && (
               <p className="text-muted map-search__demo-note">
@@ -158,9 +158,9 @@ export function ProviderSearchPage() {
                 </select>
 
                 <p className="text-muted map-search__status">
-                  {coords
-                    ? `Showing results within ${NEARBY_RADIUS_KM} km of your location`
-                    : `Showing results in "${activeCity}"`}
+                  {activeCity
+                    ? `Showing results in "${activeCity}"`
+                    : `Showing results within ${NEARBY_RADIUS_KM} km of your location`}
                 </p>
 
                 {loading && <div className="page-loading">Loading providers…</div>}

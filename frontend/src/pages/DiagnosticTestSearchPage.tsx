@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState } from 'react';
 import { useUserLocation } from '../app/UserLocationContext';
 import { SplitSearchLayout } from '../components/SplitSearchLayout';
 import { LocationMap, type LocationMapMarker } from '../components/LocationMap';
@@ -15,18 +15,10 @@ export function DiagnosticTestSearchPage() {
   const { coords } = useUserLocation();
   const [query, setQuery] = useState('');
   const [city, setCity] = useState('');
-  const [activeQuery, setActiveQuery] = useState('');
-  const [activeCity, setActiveCity] = useState('');
-
-  function handleSearch(e: FormEvent) {
-    e.preventDefault();
-    setActiveQuery(query);
-    setActiveCity(city);
-  }
 
   const matched = useMemo(() => {
-    const q = activeQuery.trim().toLowerCase();
-    const c = activeCity.trim().toLowerCase();
+    const q = query.trim().toLowerCase();
+    const c = city.trim().toLowerCase();
 
     return MOCK_LABS.map((lab) => {
       const tests = q
@@ -38,9 +30,9 @@ export function DiagnosticTestSearchPage() {
       if (c && !lab.address.city.toLowerCase().includes(c)) return false;
       return true;
     });
-  }, [activeQuery, activeCity]);
+  }, [query, city]);
 
-  const cityActive = activeCity.trim() !== '';
+  const cityActive = city.trim() !== '';
 
   const { results, usingFallback } = useMemo(() => {
     const withDistance = matched.map((entry) => ({
@@ -82,7 +74,7 @@ export function DiagnosticTestSearchPage() {
 
   let statusText: string;
   if (cityActive) {
-    statusText = `Showing labs in "${activeCity}"`;
+    statusText = `Showing labs in "${city}"`;
   } else if (usingFallback) {
     statusText = `No demo labs within ${NEARBY_RADIUS_KM} km of you — showing samples near Nandigama (${NANDIGAMA_PINCODE})`;
   } else if (coords) {
@@ -108,13 +100,10 @@ export function DiagnosticTestSearchPage() {
         <p className="text-muted">Compare prices and home-collection options across nearby labs.</p>
       </div>
 
-      <form onSubmit={handleSearch} className="city-form split-search__form">
+      <div className="city-form split-search__form">
         <input placeholder="Test or category (e.g. CBC, X-Ray)" value={query} onChange={(e) => setQuery(e.target.value)} />
         <input placeholder="City (optional)" value={city} onChange={(e) => setCity(e.target.value)} style={{ maxWidth: 140 }} />
-        <button type="submit" className="btn btn-primary">
-          Search
-        </button>
-      </form>
+      </div>
 
       <p className="text-muted split-search__status">{statusText}</p>
       <p className="text-muted split-search__demo-note">
