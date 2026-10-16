@@ -4,6 +4,8 @@ import { useGeolocation } from '../hooks/useGeolocation';
 import { searchProviders, PROVIDER_TYPE_LABELS } from '../services/providerService';
 import type { PublicProvider } from '../types/provider';
 import { ProviderCard } from '../components/ProviderCard';
+import { ProviderMap } from '../components/ProviderMap';
+import { MOCK_NANDIGAMA_PROVIDERS, NANDIGAMA_CENTER, NANDIGAMA_PINCODE } from '../data/mockNandigamaProviders';
 import './ProviderSearchPage.css';
 
 export function ProviderSearchPage() {
@@ -14,8 +16,10 @@ export function ProviderSearchPage() {
   const [providers, setProviders] = useState<PublicProvider[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<'list' | 'map'>('list');
 
   const hasSearchContext = coords !== null || activeCity !== null;
+  const mapCenter = coords ?? providers?.find((p) => p.location)?.location ?? NANDIGAMA_CENTER;
 
   useEffect(() => {
     if (!hasSearchContext) return;
@@ -62,32 +66,46 @@ export function ProviderSearchPage() {
       </div>
 
       {!hasSearchContext && (
-        <div className="card location-prompt">
-          <p>Share your location to see the closest verified providers, sorted by distance.</p>
-          <button className="btn btn-primary" onClick={requestLocation} disabled={status === 'requesting'}>
-            {status === 'requesting' ? 'Requesting location…' : 'Use my location'}
-          </button>
-
-          {(status === 'denied' || status === 'unavailable') && (
-            <p className="alert alert-error" style={{ marginTop: 12 }}>
-              {status === 'denied'
-                ? "Location access was denied. You can still search by city below."
-                : "Location isn't available on this device. Search by city below."}
-            </p>
-          )}
-
-          <div className="location-prompt__divider">or search by city</div>
-          <form onSubmit={handleCitySubmit} className="city-form">
-            <input
-              placeholder="e.g. Pune, Nashik"
-              value={cityInput}
-              onChange={(e) => setCityInput(e.target.value)}
-            />
-            <button type="submit" className="btn btn-secondary">
-              Search
+        <>
+          <div className="card location-prompt">
+            <p>Share your location to see the closest verified providers, sorted by distance.</p>
+            <button className="btn btn-primary" onClick={requestLocation} disabled={status === 'requesting'}>
+              {status === 'requesting' ? 'Requesting location…' : 'Use my location'}
             </button>
-          </form>
-        </div>
+
+            {(status === 'denied' || status === 'unavailable') && (
+              <p className="alert alert-error" style={{ marginTop: 12 }}>
+                {status === 'denied'
+                  ? "Location access was denied. You can still search by city below."
+                  : "Location isn't available on this device. Search by city below."}
+              </p>
+            )}
+
+            <div className="location-prompt__divider">or search by city</div>
+            <form onSubmit={handleCitySubmit} className="city-form">
+              <input
+                placeholder="e.g. Pune, Nashik"
+                value={cityInput}
+                onChange={(e) => setCityInput(e.target.value)}
+              />
+              <button type="submit" className="btn btn-secondary">
+                Search
+              </button>
+            </form>
+          </div>
+
+          <div className="map-preview">
+            <div className="map-preview__head">
+              <h2>Explore providers on the map</h2>
+              <p className="text-muted">
+                Sample listing for Nandigama village ({NANDIGAMA_PINCODE}) — hospitals, clinics, and medical
+                shops registered on MediConnect, color-coded by type. Real results appear here once you search
+                above.
+              </p>
+            </div>
+            <ProviderMap providers={MOCK_NANDIGAMA_PROVIDERS} center={NANDIGAMA_CENTER} />
+          </div>
+        </>
       )}
 
       {hasSearchContext && (
@@ -104,6 +122,22 @@ export function ProviderSearchPage() {
                 </option>
               ))}
             </select>
+            <div className="view-toggle" role="group" aria-label="Result view">
+              <button
+                type="button"
+                className={view === 'list' ? 'active' : ''}
+                onClick={() => setView('list')}
+              >
+                List
+              </button>
+              <button
+                type="button"
+                className={view === 'map' ? 'active' : ''}
+                onClick={() => setView('map')}
+              >
+                Map
+              </button>
+            </div>
           </div>
 
           {loading && <div className="page-loading">Loading providers…</div>}
@@ -113,12 +147,15 @@ export function ProviderSearchPage() {
               No verified providers found in this area yet. Try a larger search or a different city.
             </div>
           )}
-          {!loading && !error && providers && providers.length > 0 && (
+          {!loading && !error && providers && providers.length > 0 && view === 'list' && (
             <div className="provider-list">
               {providers.map((provider) => (
                 <ProviderCard key={provider.id} provider={provider} />
               ))}
             </div>
+          )}
+          {!loading && !error && providers && providers.length > 0 && view === 'map' && (
+            <ProviderMap providers={providers} center={mapCenter} />
           )}
         </>
       )}
