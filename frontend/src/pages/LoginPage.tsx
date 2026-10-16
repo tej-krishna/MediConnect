@@ -25,8 +25,11 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const googleError = new URLSearchParams(location.search).get('error');
+  // Known slugs get a friendly rewrite; anything else is already a short, safe message the
+  // backend chose to send (e.g. "This account has been suspended") — show it rather than hiding
+  // the real reason behind a generic one.
   const [error, setError] = useState<string | null>(
-    googleError ? (GOOGLE_ERROR_MESSAGES[googleError] ?? 'Google sign-in failed. Please try again.') : null,
+    googleError ? (GOOGLE_ERROR_MESSAGES[googleError] ?? googleError) : null,
   );
   const [submitting, setSubmitting] = useState(false);
 

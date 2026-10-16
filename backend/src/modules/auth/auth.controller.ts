@@ -3,6 +3,7 @@ import { asyncHandler } from '../../middleware/errorHandler';
 import { sendSuccess } from '../../utils/response';
 import { AppError } from '../../utils/AppError';
 import { env } from '../../config/env';
+import { logger } from '../../utils/logger';
 import { REFRESH_TOKEN_COOKIE_NAME } from '../../config/constants';
 import { toPublicUser } from '../users/user.mapper';
 import { User } from '../users/user.model';
@@ -129,6 +130,12 @@ export const googleCallbackHandler = asyncHandler(async (req, res) => {
     const profile = await exchangeGoogleCode(code);
     result = await authService.loginWithGoogleProfile(profile, requestMeta(req));
   } catch (err) {
+    // The browser only ever sees a short, safe reason via the redirect below — this is the only
+    // place the real cause (a thrown AppError's message, or an unexpected error like a duplicate
+    // key from loginWithGoogleProfile) gets recorded anywhere.
+    logger.error('Google sign-in callback failed', {
+      error: err instanceof Error ? err.message : err,
+    });
     redirectOnError(err instanceof AppError ? err.message : 'google_auth_failed');
     return;
   }

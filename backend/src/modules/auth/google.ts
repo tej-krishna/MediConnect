@@ -1,5 +1,6 @@
 import { AppError } from '../../utils/AppError';
 import { env } from '../../config/env';
+import { logger } from '../../utils/logger';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -64,6 +65,12 @@ export async function exchangeGoogleCode(code: string): Promise<{ googleId: stri
   });
 
   if (!tokenRes.ok) {
+    // Google's own error body (e.g. {"error":"redirect_uri_mismatch"} or {"error":"invalid_client"})
+    // is the one piece of information that actually explains a misconfigured client — surfacing
+    // only "Failed to exchange..." to the end user is correct, but logging the real reason here is
+    // the difference between a one-line env/console fix and an unexplained bounce back to /login.
+    const body = await tokenRes.text().catch(() => '<unreadable body>');
+    logger.error('Google token exchange failed', { status: tokenRes.status, body });
     throw AppError.unauthorized('Failed to exchange Google authorization code');
   }
   const tokenJson = (await tokenRes.json()) as GoogleTokenResponse;
@@ -72,6 +79,8 @@ export async function exchangeGoogleCode(code: string): Promise<{ googleId: stri
     headers: { Authorization: `Bearer ${tokenJson.access_token}` },
   });
   if (!userRes.ok) {
+    const body = await userRes.text().catch(() => '<unreadable body>');
+    logger.error('Google userinfo fetch failed', { status: userRes.status, body });
     throw AppError.unauthorized('Failed to fetch Google profile');
   }
   const profile = (await userRes.json()) as GoogleUserInfo;
