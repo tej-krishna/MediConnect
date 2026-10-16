@@ -39,25 +39,26 @@
   animation: float-drift 7s ease-in-out infinite;
 }
 
-.feature-float--1 { left: 4%; top: 18%; --rot: -7deg; animation-delay: 0s; }
-.feature-float--2 { right: 4%; top: 36%; --rot: 6deg; animation-delay: 1.2s; }
-.feature-float--3 { left: 10%; bottom: 10%; --rot: -4deg; animation-delay: 2.4s; }
+.feature-float--1 { left: 15%; top: 20%; --rot: -7deg; animation-delay: 0s; }
+.feature-float--2 { right: 15%; top: 38%; --rot: 6deg; animation-delay: 1.2s; }
+.feature-float--3 { left: 17%; bottom: 14%; --rot: -4deg; animation-delay: 2.4s; }
 
 /* --- scattered medical icons --- */
 
 .icon-float {
   position: absolute;
-  color: var(--color-primary);
+  color: var(--color-primary-dark);
+  opacity: 1;
   animation: float-drift 6s ease-in-out infinite;
 }
 .icon-float svg { width: 100%; height: 100%; display: block; }
 
-.icon-float--1 { left: 40%; top: 9%; width: 26px; height: 26px; --rot: -12deg; animation-delay: 0.3s; color: var(--color-emergency); }
-.icon-float--2 { right: 6%; top: 10%; width: 34px; height: 34px; --rot: 10deg; animation-delay: 1.6s; }
-.icon-float--3 { right: 16%; top: 54%; width: 24px; height: 24px; --rot: 8deg; animation-delay: 2.2s; color: var(--color-emergency); }
-.icon-float--4 { right: 12%; bottom: 14%; width: 28px; height: 28px; --rot: -10deg; animation-delay: 0.8s; }
-.icon-float--5 { left: 46%; bottom: 5%; width: 26px; height: 26px; --rot: 14deg; animation-delay: 1.9s; color: var(--color-emergency); }
-.icon-float--6 { left: 20%; top: 45%; width: 20px; height: 20px; --rot: -6deg; animation-delay: 3s; }
+.icon-float--1 { left: 38%; top: 7%; width: 38px; height: 38px; --rot: -12deg; animation-delay: 0.3s; color: var(--color-danger); }
+.icon-float--2 { right: 5%; top: 9%; width: 48px; height: 48px; --rot: 10deg; animation-delay: 1.6s; }
+.icon-float--3 { right: 14%; top: 53%; width: 36px; height: 36px; --rot: 8deg; animation-delay: 2.2s; color: var(--color-danger); }
+.icon-float--4 { right: 10%; bottom: 12%; width: 42px; height: 42px; --rot: -10deg; animation-delay: 0.8s; }
+.icon-float--5 { left: 44%; bottom: 3%; width: 38px; height: 38px; --rot: 14deg; animation-delay: 1.9s; color: var(--color-danger); }
+.icon-float--6 { left: 18%; top: 44%; width: 30px; height: 30px; --rot: -6deg; animation-delay: 3s; }
 
 @keyframes float-drift {
   0%, 100% { transform: translateY(0) rotate(var(--rot, 0deg)); }
