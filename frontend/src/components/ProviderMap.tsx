@@ -32,12 +32,15 @@ function pinIcon(color: string) {
   });
 }
 
+const USER_ICON_SVG =
+  '<svg viewBox="0 0 24 24" width="13" height="13" fill="white"><circle cx="12" cy="7.5" r="4"/><path d="M4 21v-0.5C4 15.7 7.6 12 12 12s8 3.7 8 8.5V21H4z"/></svg>';
+
 const userLocationIcon = L.divIcon({
   className: 'provider-map__user-wrapper',
-  html: '<span class="provider-map__user-pulse"></span><span class="provider-map__user-dot"></span>',
-  iconSize: [20, 20],
-  iconAnchor: [10, 10],
-  popupAnchor: [0, -12],
+  html: `<span class="provider-map__user-pulse"></span><span class="provider-map__user-dot">${USER_ICON_SVG}</span>`,
+  iconSize: [26, 26],
+  iconAnchor: [13, 13],
+  popupAnchor: [0, -15],
 });
 
 function RecenterOnChange({ center, zoom }: { center: LatLng; zoom: number }) {
