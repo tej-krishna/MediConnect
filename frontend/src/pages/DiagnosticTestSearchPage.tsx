@@ -91,6 +91,7 @@ export function DiagnosticTestSearchPage() {
           center={mapCenter}
           radiusMeters={cityActive ? undefined : NEARBY_RADIUS_METERS}
           radiusCenter={mapCenter}
+          userLocation={cityActive ? undefined : coords ?? undefined}
         />
       }
     >

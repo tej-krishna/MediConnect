@@ -15,6 +15,14 @@ function pinIcon(color: string) {
   });
 }
 
+const userLocationIcon = L.divIcon({
+  className: 'location-map__user-wrapper',
+  html: '<span class="location-map__user-pulse"></span><span class="location-map__user-dot"></span>',
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
+  popupAnchor: [0, -12],
+});
+
 function RecenterOnChange({ center, zoom }: { center: LatLng; zoom: number }) {
   const map = useMap();
   useEffect(() => {
@@ -37,9 +45,10 @@ interface LocationMapProps {
   zoom?: number;
   radiusMeters?: number;
   radiusCenter?: LatLng;
+  userLocation?: LatLng;
 }
 
-export function LocationMap({ markers, center, zoom = 14, radiusMeters, radiusCenter }: LocationMapProps) {
+export function LocationMap({ markers, center, zoom = 14, radiusMeters, radiusCenter, userLocation }: LocationMapProps) {
   return (
     <div className="location-map">
       <MapContainer center={[center.lat, center.lng]} zoom={zoom} scrollWheelZoom style={{ height: '100%', width: '100%' }}>
@@ -54,6 +63,11 @@ export function LocationMap({ markers, center, zoom = 14, radiusMeters, radiusCe
             radius={radiusMeters}
             pathOptions={{ color: '#0d9488', weight: 1.5, fillColor: '#0d9488', fillOpacity: 0.08 }}
           />
+        )}
+        {userLocation && (
+          <Marker position={[userLocation.lat, userLocation.lng]} icon={userLocationIcon} zIndexOffset={1000}>
+            <Popup>Your location</Popup>
+          </Marker>
         )}
         {markers.map((marker) => (
           <Marker key={marker.id} position={[marker.position.lat, marker.position.lng]} icon={pinIcon(marker.color)}>

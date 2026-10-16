@@ -32,6 +32,14 @@ function pinIcon(color: string) {
   });
 }
 
+const userLocationIcon = L.divIcon({
+  className: 'provider-map__user-wrapper',
+  html: '<span class="provider-map__user-pulse"></span><span class="provider-map__user-dot"></span>',
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
+  popupAnchor: [0, -12],
+});
+
 function RecenterOnChange({ center, zoom }: { center: LatLng; zoom: number }) {
   const map = useMap();
   useEffect(() => {
@@ -49,6 +57,7 @@ interface ProviderMapProps {
   fullscreen?: boolean;
   radiusMeters?: number;
   radiusCenter?: LatLng;
+  userLocation?: LatLng;
 }
 
 export function ProviderMap({
@@ -59,6 +68,7 @@ export function ProviderMap({
   fullscreen = false,
   radiusMeters,
   radiusCenter,
+  userLocation,
 }: ProviderMapProps) {
   const located = providers.filter((p): p is PublicProvider & { location: LatLng } => p.location !== null);
   const typesPresent = Array.from(new Set(located.map((p) => p.providerType)));
@@ -82,6 +92,11 @@ export function ProviderMap({
             radius={radiusMeters}
             pathOptions={{ color: '#0d9488', weight: 1.5, fillColor: '#0d9488', fillOpacity: 0.08 }}
           />
+        )}
+        {userLocation && (
+          <Marker position={[userLocation.lat, userLocation.lng]} icon={userLocationIcon} zIndexOffset={1000}>
+            <Popup>Your location</Popup>
+          </Marker>
         )}
         {located.map((provider) => (
           <Marker

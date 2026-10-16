@@ -69,6 +69,44 @@
   border-top: 1px solid var(--color-border);
 }
 
+.provider-map__user-wrapper {
+  position: relative;
+}
+
+.provider-map__user-dot {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #2563eb;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(11, 18, 32, 0.5);
+}
+
+.provider-map__user-pulse {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.35);
+  animation: provider-map-pulse 2s ease-out infinite;
+}
+
+@keyframes provider-map-pulse {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
 .provider-map--fullscreen {
   position: relative;
   height: 100%;

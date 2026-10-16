@@ -94,6 +94,7 @@ export function ProviderSearchPage() {
         center={mapCenter}
         radiusMeters={activeCity ? undefined : NEARBY_RADIUS_METERS}
         radiusCenter={coords ?? NANDIGAMA_CENTER}
+        userLocation={coords ?? undefined}
         fullscreen
       />
 
