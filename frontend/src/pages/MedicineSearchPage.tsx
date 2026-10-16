@@ -1,26 +1,22 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { useGeolocation } from '../hooks/useGeolocation';
+import { useMemo, useState, type FormEvent } from 'react';
+import { useUserLocation } from '../app/UserLocationContext';
 import { SplitSearchLayout } from '../components/SplitSearchLayout';
 import { LocationMap, type LocationMapMarker } from '../components/LocationMap';
 import { MOCK_PHARMACIES } from '../data/mockPharmacies';
 import { NANDIGAMA_CENTER, NANDIGAMA_PINCODE } from '../data/mockNandigamaProviders';
-import { distanceMeters, formatDistance } from '../utils/geo';
+import { distanceMeters, formatDistance, NEARBY_RADIUS_METERS } from '../utils/geo';
 import '../components/SplitSearchLayout.css';
 import './ProviderSearchPage.css';
 
 const PHARMACY_COLOR = '#059669';
+const NEARBY_RADIUS_KM = NEARBY_RADIUS_METERS / 1000;
 
 export function MedicineSearchPage() {
-  const { coords, requestLocation } = useGeolocation();
+  const { coords } = useUserLocation();
   const [query, setQuery] = useState('');
   const [city, setCity] = useState('');
   const [activeQuery, setActiveQuery] = useState('');
   const [activeCity, setActiveCity] = useState('');
-
-  useEffect(() => {
-    requestLocation();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   function handleSearch(e: FormEvent) {
     e.preventDefault();
@@ -28,7 +24,7 @@ export function MedicineSearchPage() {
     setActiveCity(city);
   }
 
-  const results = useMemo(() => {
+  const matched = useMemo(() => {
     const q = activeQuery.trim().toLowerCase();
     const c = activeCity.trim().toLowerCase();
 
@@ -39,20 +35,37 @@ export function MedicineSearchPage() {
           )
         : pharmacy.medicines;
       return { pharmacy, medicines };
-    })
-      .filter(({ pharmacy, medicines }) => {
-        if (q && medicines.length === 0) return false;
-        if (c && !pharmacy.address.city.toLowerCase().includes(c)) return false;
-        return true;
-      })
-      .map((entry) => ({
-        ...entry,
-        distance: coords ? distanceMeters(coords, entry.pharmacy.location) : undefined,
-      }))
-      .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
-  }, [activeQuery, activeCity, coords]);
+    }).filter(({ pharmacy, medicines }) => {
+      if (q && medicines.length === 0) return false;
+      if (c && !pharmacy.address.city.toLowerCase().includes(c)) return false;
+      return true;
+    });
+  }, [activeQuery, activeCity]);
 
-  const mapCenter = coords ?? NANDIGAMA_CENTER;
+  const cityActive = activeCity.trim() !== '';
+
+  const { results, usingFallback } = useMemo(() => {
+    const withDistance = matched.map((entry) => ({
+      ...entry,
+      distance: coords ? distanceMeters(coords, entry.pharmacy.location) : undefined,
+    }));
+
+    if (!coords || cityActive) {
+      return { results: withDistance, usingFallback: false };
+    }
+
+    const nearby = withDistance
+      .filter((entry) => (entry.distance ?? Infinity) <= NEARBY_RADIUS_METERS)
+      .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
+
+    if (nearby.length === 0 && withDistance.length > 0) {
+      return { results: matched.map((entry) => ({ ...entry, distance: undefined })), usingFallback: true };
+    }
+
+    return { results: nearby, usingFallback: false };
+  }, [matched, coords, cityActive]);
+
+  const mapCenter = !coords || usingFallback ? NANDIGAMA_CENTER : coords;
 
   const markers: LocationMapMarker[] = results.map(({ pharmacy, medicines }) => ({
     id: pharmacy.id,
@@ -69,8 +82,28 @@ export function MedicineSearchPage() {
     ),
   }));
 
+  let statusText: string;
+  if (cityActive) {
+    statusText = `Showing pharmacies in "${activeCity}"`;
+  } else if (usingFallback) {
+    statusText = `No demo pharmacies within ${NEARBY_RADIUS_KM} km of you — showing samples near Nandigama (${NANDIGAMA_PINCODE})`;
+  } else if (coords) {
+    statusText = `Showing ${results.length} pharmac${results.length === 1 ? 'y' : 'ies'} within ${NEARBY_RADIUS_KM} km of your location`;
+  } else {
+    statusText = `Showing sample pharmacies near Nandigama (${NANDIGAMA_PINCODE})`;
+  }
+
   return (
-    <SplitSearchLayout map={<LocationMap markers={markers} center={mapCenter} />}>
+    <SplitSearchLayout
+      map={
+        <LocationMap
+          markers={markers}
+          center={mapCenter}
+          radiusMeters={cityActive ? undefined : NEARBY_RADIUS_METERS}
+          radiusCenter={mapCenter}
+        />
+      }
+    >
       <div className="page-head">
         <span className="eyebrow">Pharmacy</span>
         <h1>Find medicines</h1>
@@ -85,11 +118,7 @@ export function MedicineSearchPage() {
         </button>
       </form>
 
-      <p className="text-muted split-search__status">
-        {coords
-          ? `Showing ${results.length} pharmac${results.length === 1 ? 'y' : 'ies'} near your location`
-          : `Showing sample pharmacies near Nandigama (${NANDIGAMA_PINCODE})`}
-      </p>
+      <p className="text-muted split-search__status">{statusText}</p>
       <p className="text-muted split-search__demo-note">
         Demo data — ordering opens once pharmacies register in your area.
       </p>

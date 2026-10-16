@@ -1,10 +1,13 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useGeolocation } from '../hooks/useGeolocation';
+import { useUserLocation } from '../app/UserLocationContext';
 import { searchProviders, PROVIDER_TYPE_LABELS } from '../services/providerService';
 import type { PublicProvider } from '../types/provider';
 import { ProviderMap } from '../components/ProviderMap';
 import { MOCK_NANDIGAMA_PROVIDERS, NANDIGAMA_CENTER, NANDIGAMA_PINCODE } from '../data/mockNandigamaProviders';
+import { NEARBY_RADIUS_METERS } from '../utils/geo';
 import './ProviderSearchPage.css';
+
+const NEARBY_RADIUS_KM = NEARBY_RADIUS_METERS / 1000;
 
 function SearchIcon() {
   return (
@@ -25,7 +28,7 @@ function CloseIcon() {
 }
 
 export function ProviderSearchPage() {
-  const { status, coords, requestLocation, reset: resetLocation } = useGeolocation();
+  const { status, coords, requestLocation } = useUserLocation();
   const [cityInput, setCityInput] = useState('');
   const [activeCity, setActiveCity] = useState<string | null>(null);
   const [providerType, setProviderType] = useState('');
@@ -36,7 +39,8 @@ export function ProviderSearchPage() {
 
   const hasSearchContext = coords !== null || activeCity !== null;
   const displayProviders = hasSearchContext ? providers ?? [] : MOCK_NANDIGAMA_PROVIDERS;
-  const mapCenter = coords ?? displayProviders.find((p) => p.location)?.location ?? NANDIGAMA_CENTER;
+  const effectiveCenter = coords ?? NANDIGAMA_CENTER;
+  const mapCenter = hasSearchContext ? coords ?? displayProviders.find((p) => p.location)?.location ?? NANDIGAMA_CENTER : NANDIGAMA_CENTER;
 
   useEffect(() => {
     if (!hasSearchContext) return;
@@ -50,7 +54,7 @@ export function ProviderSearchPage() {
       lng: coords?.lng,
       city: coords ? undefined : activeCity ?? undefined,
       providerType: providerType || undefined,
-      radiusKm: 30,
+      radiusKm: NEARBY_RADIUS_KM,
     })
       .then((res) => {
         if (!cancelled) setProviders(res.providers);
@@ -74,20 +78,21 @@ export function ProviderSearchPage() {
     }
   }
 
-  function handleUseLocation() {
-    requestLocation();
-  }
-
-  function handleReset() {
+  function handleClearCity() {
     setActiveCity(null);
     setProviders(null);
     setCityInput('');
-    resetLocation();
   }
 
   return (
     <div className="map-page">
-      <ProviderMap providers={displayProviders} center={mapCenter} fullscreen />
+      <ProviderMap
+        providers={displayProviders}
+        center={mapCenter}
+        radiusMeters={NEARBY_RADIUS_METERS}
+        radiusCenter={coords ?? effectiveCenter}
+        fullscreen
+      />
 
       <div className={`map-search${panelOpen ? ' map-search--open' : ''}`}>
         <button
@@ -104,24 +109,24 @@ export function ProviderSearchPage() {
           <div className="map-search__panel card">
             <span className="eyebrow">Find care</span>
             <h2>Find care near you</h2>
+            <p className="text-muted">Verified doctors, hospitals, clinics, and labs within 2 km of your location.</p>
 
-            {!hasSearchContext && (
+            {(status === 'denied' || status === 'unavailable') && !activeCity && (
               <>
-                <p className="text-muted">Search verified doctors, hospitals, clinics, and labs by location or city.</p>
-                <button className="btn btn-primary btn-block" onClick={handleUseLocation} disabled={status === 'requesting'}>
-                  {status === 'requesting' ? 'Requesting location…' : 'Use my location'}
+                <p className="alert alert-error" style={{ marginTop: 12 }}>
+                  {status === 'denied'
+                    ? 'Location access was denied. You can retry, or search by city below.'
+                    : "Location isn't available on this device. Search by city below."}
+                </p>
+                <button className="btn btn-primary btn-block" onClick={requestLocation}>
+                  Retry location
                 </button>
-
-                {(status === 'denied' || status === 'unavailable') && (
-                  <p className="alert alert-error" style={{ marginTop: 12 }}>
-                    {status === 'denied'
-                      ? "Location access was denied. You can still search by city below."
-                      : "Location isn't available on this device. Search by city below."}
-                  </p>
-                )}
-
                 <div className="location-prompt__divider">or search by city</div>
               </>
+            )}
+
+            {status === 'requesting' && !activeCity && (
+              <p className="text-muted map-search__status">Finding your location…</p>
             )}
 
             <form onSubmit={handleCitySubmit} className="city-form">
@@ -137,7 +142,7 @@ export function ProviderSearchPage() {
 
             {!hasSearchContext && (
               <p className="text-muted map-search__demo-note">
-                Showing sample providers near Nandigama ({NANDIGAMA_PINCODE}) until you search above.
+                Showing sample providers near Nandigama ({NANDIGAMA_PINCODE}) until your location or a city search is available.
               </p>
             )}
 
@@ -153,7 +158,9 @@ export function ProviderSearchPage() {
                 </select>
 
                 <p className="text-muted map-search__status">
-                  {coords ? 'Showing results near your current location' : `Showing results in "${activeCity}"`}
+                  {coords
+                    ? `Showing results within ${NEARBY_RADIUS_KM} km of your location`
+                    : `Showing results in "${activeCity}"`}
                 </p>
 
                 {loading && <div className="page-loading">Loading providers…</div>}
@@ -174,9 +181,11 @@ export function ProviderSearchPage() {
                   </ul>
                 )}
 
-                <button type="button" className="btn btn-ghost btn-sm map-search__reset" onClick={handleReset}>
-                  Start a new search
-                </button>
+                {activeCity && (
+                  <button type="button" className="btn btn-ghost btn-sm map-search__reset" onClick={handleClearCity}>
+                    Clear city search
+                  </button>
+                )}
               </>
             )}
           </div>

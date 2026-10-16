@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './app/AuthContext';
+import { UserLocationProvider } from './app/UserLocationContext';
 import { ProtectedRoute } from './app/ProtectedRoute';
 import { MainLayout } from './layouts/MainLayout';
 import { LandingPage } from './pages/LandingPage';
@@ -52,7 +53,8 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
+        <UserLocationProvider>
+          <Routes>
           <Route element={<MainLayout />}>
             <Route index element={<LandingPage />} />
             <Route path="login" element={<LoginPage />} />
@@ -104,6 +106,7 @@ function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
+        </UserLocationProvider>
       </AuthProvider>
     </BrowserRouter>
   );

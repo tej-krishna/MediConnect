@@ -1,7 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
+import { Circle, MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import type { LatLng } from '../types/provider';
 import './LocationMap.css';
 
@@ -35,9 +35,11 @@ interface LocationMapProps {
   markers: LocationMapMarker[];
   center: LatLng;
   zoom?: number;
+  radiusMeters?: number;
+  radiusCenter?: LatLng;
 }
 
-export function LocationMap({ markers, center, zoom = 13 }: LocationMapProps) {
+export function LocationMap({ markers, center, zoom = 14, radiusMeters, radiusCenter }: LocationMapProps) {
   return (
     <div className="location-map">
       <MapContainer center={[center.lat, center.lng]} zoom={zoom} scrollWheelZoom style={{ height: '100%', width: '100%' }}>
@@ -46,6 +48,13 @@ export function LocationMap({ markers, center, zoom = 13 }: LocationMapProps) {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <RecenterOnChange center={center} zoom={zoom} />
+        {radiusMeters !== undefined && (
+          <Circle
+            center={[(radiusCenter ?? center).lat, (radiusCenter ?? center).lng]}
+            radius={radiusMeters}
+            pathOptions={{ color: '#0d9488', weight: 1.5, fillColor: '#0d9488', fillOpacity: 0.08 }}
+          />
+        )}
         {markers.map((marker) => (
           <Marker key={marker.id} position={[marker.position.lat, marker.position.lng]} icon={pinIcon(marker.color)}>
             <Popup>
