@@ -121,6 +121,34 @@
   gap: 10px;
 }
 
+/* Compact mode: used on pages whose form is tall enough to need a scrollbar otherwise
+   (currently the register form, which has more fields than login/forgot/reset). Shrinking the
+   card's own font-size scales every em-based padding (inputs, buttons) down with it; px/rem
+   values still need their own overrides below. */
+.auth-split--compact .auth-split__form {
+  padding: 24px 24px;
+}
+.auth-split--compact .auth-card {
+  font-size: 13px;
+}
+.auth-split--compact .auth-card h1 {
+  font-size: 1.3em;
+  margin-bottom: 2px;
+}
+.auth-split--compact .auth-card > p.text-muted {
+  margin-bottom: 0.8em;
+}
+.auth-split--compact .form-field {
+  margin-bottom: 10px;
+  gap: 4px;
+}
+.auth-split--compact .auth-divider {
+  margin: 14px 0;
+}
+.auth-split--compact .auth-switch {
+  margin-top: 12px;
+}
+
 @media (max-width: 960px) {
   .auth-split {
     grid-template-columns: 1fr;

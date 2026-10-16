@@ -123,6 +123,13 @@
   margin-top: 48px;
 }
 
+/* Auth pages (login/register/forgot/reset) are sized to exactly fill the viewport below the
+   header (.auth-split's min-height: calc(100svh - header)) — the footer would otherwise always
+   push the page past that height, forcing a scrollbar no matter how compact the form itself is. */
+.layout:has(.auth-split) .site-footer {
+  display: none;
+}
+
 .site-footer__inner {
   display: grid;
   grid-template-columns: 1fr auto;

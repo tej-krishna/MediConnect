@@ -31,7 +31,7 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="auth-split">
+    <div className="auth-split auth-split--compact">
       <AuthBrandPanel />
       <div className="auth-split__form">
       <div className="card auth-card">
