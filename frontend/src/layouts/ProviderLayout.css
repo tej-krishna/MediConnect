@@ -1,0 +1,172 @@
+.provider-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+  background: var(--color-bg);
+}
+
+.provider-shell__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: var(--header-height);
+  padding: 0 20px;
+  background: var(--color-ink);
+  color: #fff;
+}
+
+.provider-shell__brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.provider-shell__brand .site-logo {
+  color: #fff;
+}
+
+.provider-shell__divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
+}
+
+.provider-shell__org {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.provider-shell__org strong {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.provider-shell__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.provider-shell__actions .site-nav__link {
+  color: #fff;
+}
+
+.provider-shell__body {
+  display: flex;
+  flex: 1;
+}
+
+.provider-shell__sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px 12px;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.provider-shell__nav-link {
+  display: block;
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.provider-shell__nav-link:hover {
+  background: var(--color-surface-alt);
+  text-decoration: none;
+}
+
+.provider-shell__nav-link--active {
+  background: var(--color-primary-light);
+  color: var(--color-primary-darker);
+}
+
+.provider-shell__exit {
+  margin-top: auto;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: var(--color-text-faint);
+}
+
+.provider-shell__content {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 28px 64px;
+}
+
+/* The shared .dashboard-page rules (card spacing, overflow handling) still apply here, but its
+   narrow max-width/padding were sized for the old single-column page inside MainLayout, not this
+   sidebar shell. */
+.provider-shell__content .dashboard-page {
+  padding: 0;
+  max-width: none;
+  margin: 0;
+}
+
+.provider-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.provider-kpi-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+
+.provider-kpi-card__label {
+  font-size: 0.78rem;
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 700;
+}
+
+.provider-kpi-card__value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--color-ink);
+  margin-top: 6px;
+}
+
+@media (max-width: 860px) {
+  .provider-shell__body {
+    flex-direction: column;
+  }
+
+  .provider-shell__sidebar {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .provider-shell__exit {
+    display: none;
+  }
+
+  .provider-shell__content {
+    padding: 20px 16px 48px;
+  }
+
+  .provider-shell__org strong {
+    max-width: 140px;
+  }
+}

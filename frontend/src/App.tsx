@@ -1,8 +1,15 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { AuthProvider } from './app/AuthContext';
 import { UserLocationProvider } from './app/UserLocationContext';
 import { ProtectedRoute } from './app/ProtectedRoute';
 import { MainLayout } from './layouts/MainLayout';
+import { ProviderLayout } from './layouts/ProviderLayout';
+import { ProviderDashboardProvider } from './pages/provider/ProviderDashboardContext';
+import { ProviderOverviewPage } from './pages/provider/ProviderOverviewPage';
+import { ProviderInventoryPage } from './pages/provider/ProviderInventoryPage';
+import { ProviderOrdersPage } from './pages/provider/ProviderOrdersPage';
+import { ProviderReportsPage } from './pages/provider/ProviderReportsPage';
+import { ProviderListingPage } from './pages/provider/ProviderListingPage';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -12,7 +19,6 @@ import { AccountPage } from './pages/AccountPage';
 import { ProviderSearchPage } from './pages/ProviderSearchPage';
 import { ProviderDetailPage } from './pages/ProviderDetailPage';
 import { BecomeProviderPage } from './pages/BecomeProviderPage';
-import { ProviderDashboardPage } from './pages/ProviderDashboardPage';
 import { MyAppointmentsPage } from './pages/MyAppointmentsPage';
 import { MedicineSearchPage } from './pages/MedicineSearchPage';
 import { MedicineAlternativesPage } from './pages/MedicineAlternativesPage';
@@ -49,6 +55,11 @@ import { PrivacyPage } from './pages/PrivacyPage';
 import { TermsPage } from './pages/TermsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
+function LegacyProviderDashboardRedirect() {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/provider/${id}`} replace />;
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -76,7 +87,7 @@ function App() {
             <Route element={<ProtectedRoute />}>
               <Route path="account" element={<AccountPage />} />
               <Route path="become-provider" element={<BecomeProviderPage />} />
-              <Route path="dashboard/providers/:id" element={<ProviderDashboardPage />} />
+              <Route path="dashboard/providers/:id" element={<LegacyProviderDashboardRedirect />} />
               <Route path="appointments" element={<MyAppointmentsPage />} />
               <Route path="medicines/:id/order" element={<OrderMedicinePage />} />
               <Route path="orders" element={<MyOrdersPage />} />
@@ -104,6 +115,23 @@ function App() {
               <Route path="admin/transactions" element={<AdminTransactionsPage />} />
             </Route>
             <Route path="*" element={<NotFoundPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute />}>
+            <Route
+              path="provider/:id"
+              element={
+                <ProviderDashboardProvider>
+                  <ProviderLayout />
+                </ProviderDashboardProvider>
+              }
+            >
+              <Route index element={<ProviderOverviewPage />} />
+              <Route path="inventory" element={<ProviderInventoryPage />} />
+              <Route path="orders" element={<ProviderOrdersPage />} />
+              <Route path="reports" element={<ProviderReportsPage />} />
+              <Route path="listing" element={<ProviderListingPage />} />
+            </Route>
           </Route>
         </Routes>
         </UserLocationProvider>

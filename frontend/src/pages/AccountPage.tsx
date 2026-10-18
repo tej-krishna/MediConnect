@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../app/AuthContext';
 import { listMyApplications, PROVIDER_TYPE_LABELS } from '../services/providerService';
+import { getProviderHomePath } from '../utils/providerHome';
 import type { OwnerProviderApplication } from '../types/provider';
 import './AccountPage.css';
 
@@ -33,12 +34,16 @@ export function AccountPage() {
 
   useEffect(() => {
     listMyApplications()
-      .then(setApplications)
+      .then((apps) => {
+        setApplications(apps);
+        const providerHome = getProviderHomePath(apps);
+        if (providerHome) navigate(providerHome, { replace: true });
+      })
       .catch(() => {
         // Non-fatal — the account page still renders without the provider list.
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [navigate]);
 
   if (!user) return null;
 
@@ -100,7 +105,7 @@ export function AccountPage() {
           <ul className="account-application-list">
             {applications.map((app) => (
               <li key={app.id}>
-                <Link to={`/dashboard/providers/${app.id}`}>
+                <Link to={`/provider/${app.id}`}>
                   {app.organizationName} ({PROVIDER_TYPE_LABELS[app.providerType] ?? app.providerType}) — {app.status}
                 </Link>
               </li>
