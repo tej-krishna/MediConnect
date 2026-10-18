@@ -101,8 +101,8 @@ export function computeProviderStats(application: OwnerProviderApplication, data
       return {
         revenueLabel: 'Revenue',
         revenue: null,
-        openLabel: 'Status',
-        openCount: application.isCurrentlyAvailable ? 1 : 0,
+        openLabel: '',
+        openCount: 0,
         totalLabel: '',
         totalCount: 0,
         note: 'Ambulance bookings aren’t tracked through MediConnect yet — keep your availability up to date in Listing settings.',

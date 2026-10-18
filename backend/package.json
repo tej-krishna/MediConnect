@@ -13,7 +13,8 @@
     "lint": "eslint src tests scripts",
     "generate:openapi": "tsx scripts/generate-openapi.ts",
     "seed:doctor": "tsx scripts/seed-doctor.ts",
-    "seed:pharmacy": "tsx scripts/seed-pharmacy.ts"
+    "seed:pharmacy": "tsx scripts/seed-pharmacy.ts",
+    "seed:demo": "tsx scripts/seed-demo-users.ts"
   },
   "keywords": [],
   "author": "",

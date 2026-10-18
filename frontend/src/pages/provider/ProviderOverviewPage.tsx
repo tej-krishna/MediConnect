@@ -10,6 +10,7 @@ function formatCurrency(amount: number) {
 export function ProviderOverviewPage() {
   const {
     application,
+    config,
     documentType,
     setDocumentType,
     file,
@@ -92,6 +93,12 @@ export function ProviderOverviewPage() {
 
       {stats && (
         <div className="provider-kpi-row">
+          {config.hasAvailabilityToggle && (
+            <div className="provider-kpi-card">
+              <div className="provider-kpi-card__label">Availability</div>
+              <div className="provider-kpi-card__value">{application.isCurrentlyAvailable ? 'Available' : 'Not available'}</div>
+            </div>
+          )}
           {stats.revenue !== null && (
             <div className="provider-kpi-card">
               <div className="provider-kpi-card__label">{stats.revenueLabel}</div>
