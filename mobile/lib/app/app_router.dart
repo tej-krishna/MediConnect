@@ -1,6 +1,10 @@
 import 'package:go_router/go_router.dart';
 import '../screens/account/account_screen.dart';
 import '../screens/appointments/my_appointments_screen.dart';
+import '../screens/consultations/consultation_check_in_screen.dart';
+import '../screens/consultations/doctor_consultations_screen.dart';
+import '../screens/consultations/my_consultations_screen.dart';
+import '../screens/consultations/video_call_screen.dart';
 import '../screens/auth/forgot_password_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
@@ -90,6 +94,16 @@ GoRouter buildRouter(AuthProvider authProvider) {
         builder: (context, state) => ProviderDetailScreen(providerId: state.pathParameters['id']!),
       ),
       GoRoute(path: '/appointments', builder: (context, state) => const MyAppointmentsScreen()),
+      GoRoute(path: '/consultations', builder: (context, state) => const MyConsultationsScreen()),
+      GoRoute(path: '/doctor/consultations', builder: (context, state) => const DoctorConsultationsScreen()),
+      GoRoute(
+        path: '/consultations/:id/check-in',
+        builder: (context, state) => ConsultationCheckInScreen(consultationId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/consultations/:id/call',
+        builder: (context, state) => VideoCallScreen(consultationId: state.pathParameters['id']!),
+      ),
       GoRoute(path: '/medicines', builder: (context, state) => const MedicineSearchScreen()),
       GoRoute(
         path: '/medicines/:id/order',

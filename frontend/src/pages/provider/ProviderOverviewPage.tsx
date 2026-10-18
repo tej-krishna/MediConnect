@@ -27,6 +27,7 @@ export function ProviderOverviewPage() {
     appointments,
     slots,
     camps,
+    consultations,
   } = useProviderDashboard();
 
   if (!application) return null;
@@ -35,7 +36,18 @@ export function ProviderOverviewPage() {
   const needsVerification = ['draft', 'submitted', 'under_review'].includes(application.status);
 
   const stats = isApproved
-    ? computeProviderStats(application, { pharmacyOrders, medicines, labOrders, tests, careRequests, offerings, appointments, slots, camps })
+    ? computeProviderStats(application, {
+        pharmacyOrders,
+        medicines,
+        labOrders,
+        tests,
+        careRequests,
+        offerings,
+        appointments,
+        slots,
+        camps,
+        consultations,
+      })
     : null;
 
   return (

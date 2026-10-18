@@ -23,6 +23,9 @@ export interface PublicProvider {
   operatingHoursNote: string | null;
   verifiedAt: string | null;
   isCurrentlyAvailable?: boolean | null;
+  acceptsOnlineConsultations?: boolean | null;
+  acceptsHomeVisits?: boolean | null;
+  reliabilityRating?: number;
   typeDetails: Record<string, unknown>;
   distanceMeters?: number;
 }
@@ -53,6 +56,10 @@ export interface OwnerProviderApplication {
   consultationFee: number | null;
   operatingHoursNote: string | null;
   isCurrentlyAvailable: boolean | null;
+  acceptsOnlineConsultations: boolean | null;
+  acceptsHomeVisits: boolean | null;
+  reliabilityRating: number;
+  noShowWarningCount: number;
   typeDetails: Record<string, unknown>;
   documents: ProviderDocument[];
   status: ApplicationStatus;

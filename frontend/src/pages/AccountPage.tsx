@@ -8,6 +8,7 @@ import './AccountPage.css';
 
 const ACTIVITY_LINKS = [
   { to: '/appointments', label: 'Appointments' },
+  { to: '/consultations', label: 'Online & home-visit consultations' },
   { to: '/orders', label: 'Medicine orders' },
   { to: '/diagnostic-orders', label: 'Diagnostic tests' },
   { to: '/my-camps', label: 'Health camps' },

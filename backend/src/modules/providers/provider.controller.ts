@@ -24,6 +24,10 @@ function toApplicationView(app: Awaited<ReturnType<typeof providerService.getApp
     consultationFee: app.consultationFee,
     operatingHoursNote: app.operatingHoursNote,
     isCurrentlyAvailable: app.isCurrentlyAvailable,
+    acceptsOnlineConsultations: app.acceptsOnlineConsultations,
+    acceptsHomeVisits: app.acceptsHomeVisits,
+    reliabilityRating: app.reliabilityRating,
+    noShowWarningCount: app.noShowWarningCount,
     typeDetails: app.typeDetails,
     documents: app.documents.map((doc) => ({
       id: doc._id.toString(),
@@ -66,6 +70,9 @@ function toPublicListing(app: {
   operatingHoursNote: string | null;
   verifiedAt: Date | null;
   isCurrentlyAvailable?: boolean | null;
+  acceptsOnlineConsultations?: boolean | null;
+  acceptsHomeVisits?: boolean | null;
+  reliabilityRating?: number;
   typeDetails?: Record<string, unknown>;
   distanceMeters?: number;
 }) {
@@ -80,6 +87,9 @@ function toPublicListing(app: {
     operatingHoursNote: app.operatingHoursNote,
     verifiedAt: app.verifiedAt,
     isCurrentlyAvailable: app.isCurrentlyAvailable ?? null,
+    acceptsOnlineConsultations: app.acceptsOnlineConsultations ?? null,
+    acceptsHomeVisits: app.acceptsHomeVisits ?? null,
+    reliabilityRating: app.reliabilityRating ?? 100,
     typeDetails: app.typeDetails ?? {},
     ...(app.distanceMeters !== undefined ? { distanceMeters: Math.round(app.distanceMeters) } : {}),
   };
@@ -151,6 +161,11 @@ export const updateListingInfoHandler = asyncHandler(async (req, res) => {
 
 export const setAvailabilityHandler = asyncHandler(async (req, res) => {
   const app = await providerService.setAvailability(req.params.id as string, req.user!.id, req.body.isCurrentlyAvailable);
+  sendSuccess(res, { application: toApplicationView(app) });
+});
+
+export const setConsultationAvailabilityHandler = asyncHandler(async (req, res) => {
+  const app = await providerService.setConsultationAvailability(req.params.id as string, req.user!.id, req.body);
   sendSuccess(res, { application: toApplicationView(app) });
 });
 

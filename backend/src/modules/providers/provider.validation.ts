@@ -155,6 +155,11 @@ export const setAvailabilitySchema = z.object({
   isCurrentlyAvailable: z.coerce.boolean(),
 });
 
+export const setConsultationAvailabilitySchema = z.object({
+  acceptsOnlineConsultations: z.coerce.boolean().optional(),
+  acceptsHomeVisits: z.coerce.boolean().optional(),
+});
+
 export const listApplicationsQuerySchema = z.object({
   status: z.string().optional(),
   providerType: z.string().optional(),
@@ -166,4 +171,5 @@ export type CreateApplicationInput = z.infer<typeof createApplicationSchema>;
 export type TransitionInput = z.infer<typeof transitionSchema>;
 export type ReportInput = z.infer<typeof reportSchema>;
 export type UpdateListingInfoInput = z.infer<typeof updateListingInfoSchema>;
+export type SetConsultationAvailabilityInput = z.infer<typeof setConsultationAvailabilitySchema>;
 export type SearchProvidersQuery = z.infer<typeof searchProvidersQuerySchema>;

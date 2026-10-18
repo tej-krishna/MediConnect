@@ -10,6 +10,10 @@ import { ProviderInventoryPage } from './pages/provider/ProviderInventoryPage';
 import { ProviderOrdersPage } from './pages/provider/ProviderOrdersPage';
 import { ProviderReportsPage } from './pages/provider/ProviderReportsPage';
 import { ProviderListingPage } from './pages/provider/ProviderListingPage';
+import { ProviderConsultationsPage } from './pages/provider/ProviderConsultationsPage';
+import { MyConsultationsPage } from './pages/MyConsultationsPage';
+import { ConsultationCheckInPage } from './pages/ConsultationCheckInPage';
+import { VideoCallPage } from './pages/VideoCallPage';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -89,6 +93,8 @@ function App() {
               <Route path="become-provider" element={<BecomeProviderPage />} />
               <Route path="dashboard/providers/:id" element={<LegacyProviderDashboardRedirect />} />
               <Route path="appointments" element={<MyAppointmentsPage />} />
+              <Route path="consultations" element={<MyConsultationsPage />} />
+              <Route path="consultations/:id/check-in" element={<ConsultationCheckInPage />} />
               <Route path="medicines/:id/order" element={<OrderMedicinePage />} />
               <Route path="orders" element={<MyOrdersPage />} />
               <Route path="diagnostic-tests/:id/order" element={<OrderTestPage />} />
@@ -131,7 +137,12 @@ function App() {
               <Route path="orders" element={<ProviderOrdersPage />} />
               <Route path="reports" element={<ProviderReportsPage />} />
               <Route path="listing" element={<ProviderListingPage />} />
+              <Route path="consultations" element={<ProviderConsultationsPage />} />
             </Route>
+          </Route>
+
+          <Route element={<ProtectedRoute />}>
+            <Route path="consultations/:id/call" element={<VideoCallPage />} />
           </Route>
         </Routes>
         </UserLocationProvider>

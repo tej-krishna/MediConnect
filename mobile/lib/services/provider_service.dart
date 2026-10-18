@@ -21,4 +21,28 @@ class ProviderService {
     final result = await _client.get<Map<String, dynamic>>('/providers/search/$id');
     return PublicProvider.fromJson(result.data['provider'] as Map<String, dynamic>);
   }
+
+  /// The logged-in user's own provider applications (any type/status) — used to find a doctor's
+  /// own clinic/application id for the doctor-side consultation screens.
+  Future<List<OwnerProviderApplication>> listMyApplications() async {
+    final result = await _client.get<Map<String, dynamic>>('/providers/applications/mine');
+    return (result.data['applications'] as List)
+        .map((a) => OwnerProviderApplication.fromJson(a as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<OwnerProviderApplication> setConsultationAvailability(
+    String id, {
+    bool? acceptsOnlineConsultations,
+    bool? acceptsHomeVisits,
+  }) async {
+    final result = await _client.patch<Map<String, dynamic>>(
+      '/providers/applications/$id/consultation-availability',
+      body: {
+        'acceptsOnlineConsultations': ?acceptsOnlineConsultations,
+        'acceptsHomeVisits': ?acceptsHomeVisits,
+      },
+    );
+    return OwnerProviderApplication.fromJson(result.data['application'] as Map<String, dynamic>);
+  }
 }

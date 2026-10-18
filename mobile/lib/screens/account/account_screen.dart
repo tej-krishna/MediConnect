@@ -10,6 +10,7 @@ import '../../widgets/initials_avatar.dart';
 const _activityLinks = [
   (label: 'Find Care', icon: Icons.local_hospital_outlined, route: '/providers', emergency: false),
   (label: 'Appointments', icon: Icons.calendar_month_outlined, route: '/appointments', emergency: false),
+  (label: 'Consultations', icon: Icons.video_call_outlined, route: '/consultations', emergency: false),
   (label: 'Medicine Orders', icon: Icons.local_shipping_outlined, route: '/orders', emergency: false),
   (label: 'Diagnostic Tests', icon: Icons.biotech_outlined, route: '/diagnostic-tests', emergency: false),
   (label: 'Diagnostic Orders', icon: Icons.description_outlined, route: '/diagnostic-orders', emergency: false),
@@ -78,6 +79,18 @@ class AccountScreen extends StatelessWidget {
                       .map((l) => ActivityTile(label: l.label, icon: l.icon, emergency: l.emergency, onTap: () => context.push(l.route)))
                       .toList(),
                 ),
+                if (user.roles.contains('doctor') || user.roles.contains('clinic_admin')) ...[
+                  const SizedBox(height: 20),
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.medical_services_outlined, color: AppTheme.primary),
+                      title: const Text('Consultation requests'),
+                      subtitle: const Text('Accept online & home-visit requests from patients'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/doctor/consultations'),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 24),
                 OutlinedButton.icon(
                   onPressed: () => context.read<AuthProvider>().logout(),

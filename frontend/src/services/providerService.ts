@@ -135,6 +135,17 @@ export async function setAvailability(id: string, isCurrentlyAvailable: boolean)
   return data.application;
 }
 
+export async function setConsultationAvailability(
+  id: string,
+  input: Partial<{ acceptsOnlineConsultations: boolean; acceptsHomeVisits: boolean }>,
+): Promise<OwnerProviderApplication> {
+  const { data } = await api.patch<{ application: OwnerProviderApplication }>(
+    `/providers/applications/${id}/consultation-availability`,
+    input,
+  );
+  return data.application;
+}
+
 export const PROVIDER_TYPE_LABELS: Record<string, string> = {
   doctor: 'Doctor',
   hospital: 'Hospital',

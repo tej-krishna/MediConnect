@@ -11,11 +11,23 @@ function titleCase(value: string) {
 }
 
 export function ProviderReportsPage() {
-  const { application, pharmacyOrders, medicines, labOrders, tests, careRequests, offerings, appointments, slots, camps } = useProviderDashboard();
+  const { application, pharmacyOrders, medicines, labOrders, tests, careRequests, offerings, appointments, slots, camps, consultations } =
+    useProviderDashboard();
 
   if (!application || application.status !== 'approved') return null;
 
-  const stats = computeProviderStats(application, { pharmacyOrders, medicines, labOrders, tests, careRequests, offerings, appointments, slots, camps });
+  const stats = computeProviderStats(application, {
+    pharmacyOrders,
+    medicines,
+    labOrders,
+    tests,
+    careRequests,
+    offerings,
+    appointments,
+    slots,
+    camps,
+    consultations,
+  });
 
   const breakdown: { status: string; count: number; amount: number | null }[] = (() => {
     switch (application.providerType) {
@@ -46,9 +58,18 @@ export function ProviderReportsPage() {
             return acc;
           }, {}),
         );
-      case 'doctor':
-      case 'hospital':
-      case 'clinic': {
+      case 'doctor': {
+        const fee = application.consultationFee ?? 0;
+        return Object.values(
+          consultations.reduce<Record<string, { status: string; count: number; amount: number }>>((acc, c) => {
+            acc[c.status] ??= { status: c.status, count: 0, amount: 0 };
+            acc[c.status].count += 1;
+            if (c.status === 'completed') acc[c.status].amount += fee;
+            return acc;
+          }, {}),
+        );
+      }
+      case 'hospital': {
         const fee = application.consultationFee ?? 0;
         return Object.values(
           appointments.reduce<Record<string, { status: string; count: number; amount: number }>>((acc, a) => {
@@ -58,6 +79,21 @@ export function ProviderReportsPage() {
             return acc;
           }, {}),
         );
+      }
+      case 'clinic': {
+        const fee = application.consultationFee ?? 0;
+        const acc: Record<string, { status: string; count: number; amount: number }> = {};
+        for (const a of appointments) {
+          acc[a.status] ??= { status: a.status, count: 0, amount: 0 };
+          acc[a.status].count += 1;
+          if (a.status === 'completed') acc[a.status].amount += fee;
+        }
+        for (const c of consultations) {
+          acc[c.status] ??= { status: c.status, count: 0, amount: 0 };
+          acc[c.status].count += 1;
+          if (c.status === 'completed') acc[c.status].amount += fee;
+        }
+        return Object.values(acc);
       }
       default:
         return [];

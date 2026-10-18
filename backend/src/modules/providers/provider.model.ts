@@ -60,6 +60,14 @@ const providerApplicationSchema = new Schema(
     consultationFee: { type: Number, default: null, min: 0 },
     operatingHoursNote: { type: String, default: null, trim: true, maxlength: 200 },
     isCurrentlyAvailable: { type: Boolean, default: null },
+    // Doctor/clinic only — gate whether patients can request each visit type from this provider
+    // (see consultation.service.ts's requestConsultation). null/false both mean "not offered."
+    acceptsOnlineConsultations: { type: Boolean, default: null },
+    acceptsHomeVisits: { type: Boolean, default: null },
+    // Doctor/clinic only — starts at 100, multiplied by 0.85 every 2nd reported no-show (see
+    // consultation.service.ts's applyNoShowPenalty), which also resets noShowWarningCount to 0.
+    reliabilityRating: { type: Number, default: 100, min: 0, max: 100 },
+    noShowWarningCount: { type: Number, default: 0, min: 0 },
     // Shape varies by providerType (see provider.validation.ts's discriminated union) — a doctor's
     // specialization, a hospital's bed count, an NGO's registration type, etc. Stored loosely since
     // Mongoose has no first-class polymorphic-by-sibling-field embedding; the zod schema at the API
@@ -108,6 +116,10 @@ export interface ProviderApplicationAttrs {
   consultationFee: number | null;
   operatingHoursNote: string | null;
   isCurrentlyAvailable: boolean | null;
+  acceptsOnlineConsultations: boolean | null;
+  acceptsHomeVisits: boolean | null;
+  reliabilityRating: number;
+  noShowWarningCount: number;
   typeDetails: Record<string, unknown>;
   documents: Types.DocumentArray<ProviderDocumentSubdoc>;
   status: string;

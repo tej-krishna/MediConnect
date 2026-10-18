@@ -3,8 +3,10 @@ import { sendSuccess } from '../../utils/response';
 import { AppError } from '../../utils/AppError';
 import * as slotService from './slot.service';
 import * as appointmentService from './appointment.service';
+import * as consultationService from './consultation.service';
 import type { SlotDoc } from './slot.model';
 import type { AppointmentDoc } from './appointment.model';
+import type { ConsultationDoc } from './consultation.model';
 
 function toSlotView(slot: SlotDoc) {
   return {
@@ -115,4 +117,71 @@ export const listProviderAppointmentsHandler = asyncHandler(async (req, res) => 
     req.query as Record<string, unknown>,
   );
   sendSuccess(res, { appointments: items.map(toAppointmentView) }, 200, meta);
+});
+
+/** Same populate-or-not shape as `toMyAppointmentView` above — `doctorId` is only populated on
+ * `listMyConsultationsHandler`'s response. */
+interface PopulatedConsultationDoc extends Omit<ConsultationDoc, 'doctorId'> {
+  doctorId: { _id: unknown; organizationName: string; providerType: string; typeDetails: Record<string, unknown> };
+}
+
+function toConsultationView(consultation: ConsultationDoc) {
+  const populated = consultation as unknown as PopulatedConsultationDoc;
+  const doctor = populated.doctorId;
+  const isPopulated = doctor && typeof doctor === 'object' && 'organizationName' in doctor;
+  return {
+    id: consultation._id.toString(),
+    patientId: consultation.patientId.toString(),
+    doctorId: isPopulated ? String(doctor._id) : idOf(consultation.doctorId),
+    doctor: isPopulated
+      ? { organizationName: doctor.organizationName, providerType: doctor.providerType, typeDetails: doctor.typeDetails }
+      : null,
+    visitType: consultation.visitType,
+    homeVisitAddress: consultation.homeVisitAddress,
+    preferredDateTime: consultation.preferredDateTime,
+    confirmedDateTime: consultation.confirmedDateTime,
+    status: consultation.status,
+    doctorCheckIn: consultation.doctorCheckIn,
+    patientCheckIn: consultation.patientCheckIn,
+    videoSessionId: consultation.videoSessionId,
+    createdAt: consultation.createdAt,
+  };
+}
+
+export const requestConsultationHandler = asyncHandler(async (req, res) => {
+  const consultation = await consultationService.requestConsultation(req.user!.id, req.body);
+  sendSuccess(res, { consultation: toConsultationView(consultation) }, 201);
+});
+
+export const transitionConsultationHandler = asyncHandler(async (req, res) => {
+  const consultation = await consultationService.transitionConsultation(req.params.id as string, req.user!, req.body);
+  sendSuccess(res, { consultation: toConsultationView(consultation) });
+});
+
+export const checkInConsultationHandler = asyncHandler(async (req, res) => {
+  const result = await consultationService.checkIn(req.params.id as string, req.user!, req.body);
+  sendSuccess(res, {
+    consultation: toConsultationView(result.consultation),
+    distanceMeters: result.distanceMeters,
+    withinRange: result.withinRange,
+  });
+});
+
+export const getConsultationHandler = asyncHandler(async (req, res) => {
+  const consultation = await consultationService.getConsultation(req.params.id as string, req.user!);
+  sendSuccess(res, { consultation: toConsultationView(consultation) });
+});
+
+export const listMyConsultationsHandler = asyncHandler(async (req, res) => {
+  const { items, meta } = await consultationService.listMyConsultations(req.user!.id, req.query as Record<string, unknown>);
+  sendSuccess(res, { consultations: items.map(toConsultationView) }, 200, meta);
+});
+
+export const listDoctorConsultationsHandler = asyncHandler(async (req, res) => {
+  const { items, meta } = await consultationService.listDoctorConsultations(
+    req.params.id as string,
+    req.user!.id,
+    req.query as Record<string, unknown>,
+  );
+  sendSuccess(res, { consultations: items.map(toConsultationView) }, 200, meta);
 });

@@ -1,7 +1,7 @@
 import type { Order, Medicine } from '../../types/pharmacy';
 import type { DiagnosticOrder, DiagnosticTest, HealthCamp } from '../../types/diagnostics';
 import type { CareRequest, CareOffering } from '../../types/homecare';
-import type { Appointment, Slot } from '../../types/scheduling';
+import type { Appointment, Slot, Consultation } from '../../types/scheduling';
 import type { OwnerProviderApplication } from '../../types/provider';
 
 export interface ProviderStats {
@@ -26,6 +26,7 @@ export function computeProviderStats(application: OwnerProviderApplication, data
   appointments: Appointment[];
   slots: Slot[];
   camps: HealthCamp[];
+  consultations: Consultation[];
 }): ProviderStats {
   switch (application.providerType) {
     case 'pharmacy': {
@@ -68,9 +69,24 @@ export function computeProviderStats(application: OwnerProviderApplication, data
         note: null,
       };
     }
-    case 'doctor':
-    case 'hospital':
-    case 'clinic': {
+    case 'doctor': {
+      const completed = data.consultations.filter((c) => c.status === 'completed');
+      const confirmed = data.consultations.filter((c) => c.status === 'confirmed');
+      const fee = application.consultationFee ?? 0;
+      return {
+        revenueLabel: 'Revenue from completed consultations',
+        revenue: completed.length * fee,
+        openLabel: 'Confirmed, upcoming',
+        openCount: confirmed.length,
+        totalLabel: 'Reliability rating',
+        totalCount: Math.round(application.reliabilityRating),
+        note:
+          application.noShowWarningCount > 0
+            ? `${application.noShowWarningCount} no-show warning${application.noShowWarningCount === 1 ? '' : 's'} on record`
+            : null,
+      };
+    }
+    case 'hospital': {
       const completed = data.appointments.filter((a) => a.status === 'completed');
       const booked = data.appointments.filter((a) => a.status === 'booked');
       const fee = application.consultationFee ?? 0;
@@ -80,6 +96,22 @@ export function computeProviderStats(application: OwnerProviderApplication, data
         openLabel: 'Upcoming appointments',
         openCount: booked.length,
         totalLabel: 'Open slots',
+        totalCount: data.slots.filter((s) => s.status === 'open').length,
+        note: null,
+      };
+    }
+    case 'clinic': {
+      const completedAppt = data.appointments.filter((a) => a.status === 'completed');
+      const bookedAppt = data.appointments.filter((a) => a.status === 'booked');
+      const completedConsult = data.consultations.filter((c) => c.status === 'completed');
+      const confirmedConsult = data.consultations.filter((c) => c.status === 'confirmed');
+      const fee = application.consultationFee ?? 0;
+      return {
+        revenueLabel: 'Revenue from completed OP visits & consultations',
+        revenue: (completedAppt.length + completedConsult.length) * fee,
+        openLabel: 'Upcoming (OP + consultations)',
+        openCount: bookedAppt.length + confirmedConsult.length,
+        totalLabel: 'Open OP slots',
         totalCount: data.slots.filter((s) => s.status === 'open').length,
         note: null,
       };

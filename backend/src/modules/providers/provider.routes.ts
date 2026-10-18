@@ -10,6 +10,7 @@ import {
   updateListingInfoSchema,
   searchProvidersQuerySchema,
   setAvailabilitySchema,
+  setConsultationAvailabilitySchema,
 } from './provider.validation';
 import {
   createApplicationHandler,
@@ -23,6 +24,7 @@ import {
   downloadDocumentHandler,
   updateListingInfoHandler,
   setAvailabilityHandler,
+  setConsultationAvailabilityHandler,
   searchPublicProvidersHandler,
   getPublicProviderHandler,
 } from './provider.controller';
@@ -66,6 +68,11 @@ providerRouter.patch(
   '/providers/applications/:id/availability',
   validateBody(setAvailabilitySchema),
   setAvailabilityHandler,
+);
+providerRouter.patch(
+  '/providers/applications/:id/consultation-availability',
+  validateBody(setConsultationAvailabilitySchema),
+  setConsultationAvailabilityHandler,
 );
 
 providerRouter.post('/providers/applications/:id/staff', validateBody(inviteStaffSchema), inviteStaffHandler);

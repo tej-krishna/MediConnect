@@ -216,6 +216,30 @@ export async function setAvailability(
   return app;
 }
 
+const CONSULTATION_AVAILABILITY_TYPES = new Set(['doctor', 'clinic']);
+
+export async function setConsultationAvailability(
+  applicationId: string,
+  requesterId: string,
+  input: { acceptsOnlineConsultations?: boolean; acceptsHomeVisits?: boolean },
+): Promise<ProviderApplicationDoc> {
+  const app = await loadApplicationOr404(applicationId);
+  if (app.userId.toString() !== requesterId) {
+    throw AppError.forbidden();
+  }
+  if (!CONSULTATION_AVAILABILITY_TYPES.has(app.providerType)) {
+    throw AppError.badRequest('Only doctors and clinics accept online consultations or home visits');
+  }
+  if (input.acceptsOnlineConsultations !== undefined) {
+    app.acceptsOnlineConsultations = input.acceptsOnlineConsultations;
+  }
+  if (input.acceptsHomeVisits !== undefined) {
+    app.acceptsHomeVisits = input.acceptsHomeVisits;
+  }
+  await app.save();
+  return app;
+}
+
 export async function listMine(userId: string, query: Record<string, unknown>) {
   const { page, limit, skip } = parsePagination(query);
   const [items, total] = await Promise.all([

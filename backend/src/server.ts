@@ -2,6 +2,7 @@ import { env } from './config/env';
 import { createApp } from './app';
 import { connectDatabase, disconnectDatabase } from './config/db';
 import { logger } from './utils/logger';
+import { initVideoGateway } from './modules/video/video.gateway';
 
 async function main() {
   await connectDatabase(env.MONGO_URI);
@@ -10,6 +11,7 @@ async function main() {
   const server = app.listen(env.PORT, () => {
     logger.info(`MediConnect backend listening on port ${env.PORT}`);
   });
+  initVideoGateway(server);
 
   async function shutdown(signal: string) {
     logger.info(`Received ${signal}, shutting down gracefully`);

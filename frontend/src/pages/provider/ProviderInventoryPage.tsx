@@ -343,7 +343,7 @@ export function ProviderInventoryPage() {
         </div>
       )}
 
-      {['doctor', 'hospital', 'clinic'].includes(providerType) && (
+      {['hospital', 'clinic'].includes(providerType) && (
         <div className="card">
           <h3>Appointment slots</h3>
           <form onSubmit={handleCreateSlot} className="inline-form">

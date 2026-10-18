@@ -5,16 +5,22 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../app/app_theme.dart';
 import '../../app/auth_provider.dart';
+import '../../models/consultation.dart';
 import '../../models/provider.dart';
 import '../../models/scheduling.dart';
 import '../../services/api_client.dart';
+import '../../services/api_exception.dart';
+import '../../services/consultation_service.dart';
 import '../../services/provider_service.dart';
 import '../../services/scheduling_service.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/error_banner.dart';
 import '../../widgets/initials_avatar.dart';
 
-const _schedulingTypes = {'doctor', 'hospital', 'clinic'};
+/// Hospitals/clinics keep the old self-service slot system — doctors (and clinics, which get
+/// both) instead use the request/accept Consultation flow below.
+const _schedulingTypes = {'hospital', 'clinic'};
+const _consultationTypes = {'doctor', 'clinic'};
 
 class ProviderDetailScreen extends StatefulWidget {
   const ProviderDetailScreen({super.key, required this.providerId});
@@ -27,16 +33,35 @@ class ProviderDetailScreen extends StatefulWidget {
 class _ProviderDetailScreenState extends State<ProviderDetailScreen> {
   final _providerService = ProviderService(ApiClient.instance);
   final _schedulingService = SchedulingService(ApiClient.instance);
+  final _consultationService = ConsultationService(ApiClient.instance);
   PublicProvider? _provider;
   List<Slot>? _slots;
   Object? _error;
   String? _bookingSlotId;
   String? _message;
 
+  String _visitType = 'online';
+  DateTime? _preferredDateTime;
+  final _homeLine1Controller = TextEditingController();
+  final _homeCityController = TextEditingController();
+  final _homeStateController = TextEditingController();
+  final _homePostalCodeController = TextEditingController();
+  bool _requestingConsultation = false;
+  String? _consultationMessage;
+
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _homeLine1Controller.dispose();
+    _homeCityController.dispose();
+    _homeStateController.dispose();
+    _homePostalCodeController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -51,10 +76,65 @@ class _ProviderDetailScreenState extends State<ProviderDetailScreen> {
       setState(() {
         _provider = provider;
         _slots = slots;
+        _visitType = provider.acceptsOnlineConsultations == true ? 'online' : 'home_visit';
       });
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = e);
+    }
+  }
+
+  Future<void> _pickPreferredDateTime() async {
+    final date = await showDatePicker(
+      context: context,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 90)),
+      initialDate: DateTime.now().add(const Duration(days: 1)),
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+    if (time == null) return;
+    setState(() => _preferredDateTime = DateTime(date.year, date.month, date.day, time.hour, time.minute));
+  }
+
+  Future<void> _requestConsultation() async {
+    final auth = context.read<AuthProvider>();
+    if (!auth.isAuthenticated) {
+      context.push('/login');
+      return;
+    }
+    if (_preferredDateTime == null) {
+      setState(() => _consultationMessage = 'Pick a preferred date and time first.');
+      return;
+    }
+    setState(() {
+      _requestingConsultation = true;
+      _consultationMessage = null;
+    });
+    try {
+      await _consultationService.request(
+        doctorId: widget.providerId,
+        visitType: _visitType,
+        preferredDateTime: _preferredDateTime!,
+        homeVisitAddress: _visitType == 'home_visit'
+            ? ConsultationAddress(
+                line1: _homeLine1Controller.text,
+                city: _homeCityController.text,
+                state: _homeStateController.text,
+                postalCode: _homePostalCodeController.text,
+              )
+            : null,
+      );
+      if (!mounted) return;
+      setState(() {
+        _consultationMessage = 'Request sent! See it under My Consultations once the doctor accepts.';
+        _preferredDateTime = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _consultationMessage = e is ApiException ? e.message : 'Could not send this request.');
+    } finally {
+      if (mounted) setState(() => _requestingConsultation = false);
     }
   }
 
@@ -161,6 +241,13 @@ class _ProviderDetailScreenState extends State<ProviderDetailScreen> {
                                 const SizedBox(height: 10),
                                 _DetailRow(icon: Icons.schedule_outlined, text: provider.operatingHoursNote!),
                               ],
+                              if (_consultationTypes.contains(provider.providerType)) ...[
+                                const SizedBox(height: 10),
+                                _DetailRow(
+                                  icon: Icons.verified_outlined,
+                                  text: '${provider.reliabilityRating.toStringAsFixed(0)}% reliability — based on completed vs. missed visits',
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -195,6 +282,57 @@ class _ProviderDetailScreenState extends State<ProviderDetailScreen> {
                             ),
                             const SizedBox(height: 8),
                           ],
+                      ],
+                      if (_consultationTypes.contains(provider.providerType) &&
+                          (provider.acceptsOnlineConsultations == true || provider.acceptsHomeVisits == true)) ...[
+                        const SizedBox(height: 24),
+                        Text('Request a consultation', style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: 12),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                DropdownButtonFormField<String>(
+                                  initialValue: _visitType,
+                                  decoration: const InputDecoration(labelText: 'Visit type'),
+                                  items: [
+                                    if (provider.acceptsOnlineConsultations == true)
+                                      const DropdownMenuItem(value: 'online', child: Text('Online consultation')),
+                                    if (provider.acceptsHomeVisits == true)
+                                      const DropdownMenuItem(value: 'home_visit', child: Text('Home visit')),
+                                  ],
+                                  onChanged: (v) => setState(() => _visitType = v ?? _visitType),
+                                ),
+                                const SizedBox(height: 12),
+                                OutlinedButton(
+                                  onPressed: _pickPreferredDateTime,
+                                  child: Text(_preferredDateTime == null ? 'Pick preferred date & time' : _preferredDateTime.toString()),
+                                ),
+                                if (_visitType == 'home_visit') ...[
+                                  const SizedBox(height: 12),
+                                  TextField(controller: _homeLine1Controller, decoration: const InputDecoration(labelText: 'Address')),
+                                  const SizedBox(height: 12),
+                                  TextField(controller: _homeCityController, decoration: const InputDecoration(labelText: 'City')),
+                                  const SizedBox(height: 12),
+                                  TextField(controller: _homeStateController, decoration: const InputDecoration(labelText: 'State')),
+                                  const SizedBox(height: 12),
+                                  TextField(controller: _homePostalCodeController, decoration: const InputDecoration(labelText: 'Postal code')),
+                                ],
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: _requestingConsultation ? null : _requestConsultation,
+                                  child: Text(_requestingConsultation ? 'Sending…' : 'Send request'),
+                                ),
+                                if (_consultationMessage != null) ...[
+                                  const SizedBox(height: 8),
+                                  Text(_consultationMessage!, style: const TextStyle(color: AppTheme.textMuted)),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
                       ],
                     ],
                   ),

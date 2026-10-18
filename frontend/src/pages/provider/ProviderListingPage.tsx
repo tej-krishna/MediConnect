@@ -2,8 +2,20 @@ import { useProviderDashboard } from './ProviderDashboardContext';
 import '../ProviderDashboardPage.css';
 
 export function ProviderListingPage() {
-  const { application, fee, setFee, hoursNote, setHoursNote, savingListing, handleSaveListing, togglingAvailability, handleToggleAvailability, config } =
-    useProviderDashboard();
+  const {
+    application,
+    fee,
+    setFee,
+    hoursNote,
+    setHoursNote,
+    savingListing,
+    handleSaveListing,
+    togglingAvailability,
+    handleToggleAvailability,
+    togglingConsultationAvailability,
+    handleToggleConsultationAvailability,
+    config,
+  } = useProviderDashboard();
 
   if (!application || application.status !== 'approved') return null;
 
@@ -29,6 +41,43 @@ export function ProviderListingPage() {
           </button>
         </form>
       </div>
+
+      {config.hasConsultationsTab && (
+        <div className="card">
+          <h3>Consultation availability</h3>
+          <p className="text-muted">
+            Turn these on to let patients request a consultation from you directly. You'll accept
+            each request yourself and pick the time on the Consultations tab.
+          </p>
+          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+            <div>
+              <p>
+                Online consultations:{' '}
+                <strong>{application.acceptsOnlineConsultations ? 'On' : 'Off'}</strong>
+              </p>
+              <button
+                className="btn btn-secondary"
+                disabled={togglingConsultationAvailability}
+                onClick={() => handleToggleConsultationAvailability('acceptsOnlineConsultations')}
+              >
+                {application.acceptsOnlineConsultations ? 'Turn off' : 'Turn on'}
+              </button>
+            </div>
+            <div>
+              <p>
+                Home visits: <strong>{application.acceptsHomeVisits ? 'On' : 'Off'}</strong>
+              </p>
+              <button
+                className="btn btn-secondary"
+                disabled={togglingConsultationAvailability}
+                onClick={() => handleToggleConsultationAvailability('acceptsHomeVisits')}
+              >
+                {application.acceptsHomeVisits ? 'Turn off' : 'Turn on'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {config.hasAvailabilityToggle && (
         <div className="card">

@@ -15,6 +15,7 @@ export function ProviderLayout() {
     { to: '', label: 'Overview', end: true },
     ...(config.inventoryLabel ? [{ to: 'inventory', label: config.inventoryLabel, end: false }] : []),
     ...(config.ordersLabel ? [{ to: 'orders', label: config.ordersLabel, end: false }] : []),
+    ...(config.hasConsultationsTab ? [{ to: 'consultations', label: 'Consultations', end: false }] : []),
     { to: 'reports', label: 'Reports & revenue', end: false },
     { to: 'listing', label: 'Listing settings', end: false },
   ];

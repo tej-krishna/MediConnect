@@ -225,7 +225,7 @@ export function ProviderOrdersPage() {
         </div>
       )}
 
-      {['doctor', 'hospital', 'clinic'].includes(providerType) && (
+      {['hospital', 'clinic'].includes(providerType) && (
         <div className="card">
           <h3>Appointments</h3>
           <table className="simple-table">

@@ -80,6 +80,10 @@ class ApiClient {
 
   void setAccessToken(String? token) => _accessToken = token;
 
+  /// Read by VideoCallScreen to authenticate the Socket.IO signaling handshake the same way every
+  /// HTTP request already authenticates (see the `onRequest` interceptor above).
+  String? get accessToken => _accessToken;
+
   bool _isAuthEndpoint(String path) =>
       path.contains('/auth/login') || path.contains('/auth/register') || path.contains('/auth/refresh');
 

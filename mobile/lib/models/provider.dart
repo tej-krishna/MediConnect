@@ -36,6 +36,9 @@ class PublicProvider {
   final bool? isCurrentlyAvailable;
   final double? distanceMeters;
   final Map<String, dynamic> typeDetails;
+  final bool? acceptsOnlineConsultations;
+  final bool? acceptsHomeVisits;
+  final double reliabilityRating;
 
   const PublicProvider({
     required this.id,
@@ -51,6 +54,9 @@ class PublicProvider {
     this.isCurrentlyAvailable,
     this.distanceMeters,
     this.typeDetails = const {},
+    this.acceptsOnlineConsultations,
+    this.acceptsHomeVisits,
+    this.reliabilityRating = 100,
   });
 
   /// e.g. a doctor's free-text specialization — the backend has no dedicated field for it, just
@@ -73,8 +79,47 @@ class PublicProvider {
       isCurrentlyAvailable: json['isCurrentlyAvailable'] as bool?,
       distanceMeters: (json['distanceMeters'] as num?)?.toDouble(),
       typeDetails: (json['typeDetails'] as Map?)?.cast<String, dynamic>() ?? const {},
+      acceptsOnlineConsultations: json['acceptsOnlineConsultations'] as bool?,
+      acceptsHomeVisits: json['acceptsHomeVisits'] as bool?,
+      reliabilityRating: (json['reliabilityRating'] as num?)?.toDouble() ?? 100,
     );
   }
+}
+
+/// A doctor/clinic's own application — just the fields their mobile screens actually need (unlike
+/// the website's much larger owner view), fetched via ProviderService.listMyApplications /
+/// getMyApplication for the new doctor-side consultation screens.
+class OwnerProviderApplication {
+  final String id;
+  final String providerType;
+  final String organizationName;
+  final String status;
+  final bool? acceptsOnlineConsultations;
+  final bool? acceptsHomeVisits;
+  final double reliabilityRating;
+  final int noShowWarningCount;
+
+  const OwnerProviderApplication({
+    required this.id,
+    required this.providerType,
+    required this.organizationName,
+    required this.status,
+    this.acceptsOnlineConsultations,
+    this.acceptsHomeVisits,
+    required this.reliabilityRating,
+    required this.noShowWarningCount,
+  });
+
+  factory OwnerProviderApplication.fromJson(Map<String, dynamic> json) => OwnerProviderApplication(
+        id: json['id'] as String,
+        providerType: json['providerType'] as String,
+        organizationName: json['organizationName'] as String,
+        status: json['status'] as String,
+        acceptsOnlineConsultations: json['acceptsOnlineConsultations'] as bool?,
+        acceptsHomeVisits: json['acceptsHomeVisits'] as bool?,
+        reliabilityRating: (json['reliabilityRating'] as num?)?.toDouble() ?? 100,
+        noShowWarningCount: (json['noShowWarningCount'] as num?)?.toInt() ?? 0,
+      );
 }
 
 const providerTypeIcons = <String, IconData>{

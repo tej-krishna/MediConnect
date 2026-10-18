@@ -6,6 +6,7 @@ import {
   submitApplication,
   updateListingInfo,
   setAvailability,
+  setConsultationAvailability,
 } from '../../services/providerService';
 import {
   createSlot,
@@ -13,6 +14,12 @@ import {
   cancelSlot,
   listProviderAppointments,
 } from '../../services/schedulingService';
+import {
+  listDoctorConsultations,
+  confirmConsultation,
+  completeConsultation,
+  cancelConsultation as cancelConsultationApi,
+} from '../../services/consultationService';
 import {
   createMedicineItem,
   listPharmacyMedicines,
@@ -41,7 +48,7 @@ import {
 import { listDeliveryPartnerDirectory } from '../../services/deliveryService';
 import { ApiError } from '../../services/apiClient';
 import type { OwnerProviderApplication } from '../../types/provider';
-import type { Slot, Appointment } from '../../types/scheduling';
+import type { Slot, Appointment, Consultation } from '../../types/scheduling';
 import type { Medicine, Order } from '../../types/pharmacy';
 import type { DiagnosticTest, DiagnosticOrder, HealthCamp } from '../../types/diagnostics';
 import type { CareOffering, CareRequest, OfferingType } from '../../types/homecare';
@@ -51,8 +58,9 @@ import { getProviderTypeConfig, type ProviderTypeConfig } from './providerTypeCo
 // diagnostic_lab deliberately excluded: labs book through their own DiagnosticOrder flow
 // (collection method + preferred time tied to specific tests), not the generic Slot/Appointment
 // system doctors/hospitals/clinics use.
-const SCHEDULING_TYPES = new Set(['doctor', 'hospital', 'clinic']);
+const SCHEDULING_TYPES = new Set(['hospital', 'clinic']);
 const CAMP_TYPES = new Set(['mobile_van_operator', 'ngo_coordinator']);
+const CONSULTATION_TYPES = new Set(['doctor', 'clinic']);
 
 interface ProviderDashboardState {
   application: OwnerProviderApplication | null;
@@ -80,6 +88,15 @@ interface ProviderDashboardState {
 
   togglingAvailability: boolean;
   handleToggleAvailability: () => Promise<void>;
+
+  consultations: Consultation[];
+  confirmDateTimes: Record<string, string>;
+  setConfirmDateTimes: (updater: (prev: Record<string, string>) => Record<string, string>) => void;
+  handleConfirmConsultation: (consultationId: string) => Promise<void>;
+  handleCompleteConsultation: (consultationId: string) => Promise<void>;
+  handleCancelConsultationAsDoctor: (consultationId: string) => Promise<void>;
+  togglingConsultationAvailability: boolean;
+  handleToggleConsultationAvailability: (field: 'acceptsOnlineConsultations' | 'acceptsHomeVisits') => Promise<void>;
 
   slots: Slot[];
   slotDate: string;
@@ -247,6 +264,10 @@ export function ProviderDashboardProvider({ children }: { children: ReactNode })
 
   const [togglingAvailability, setTogglingAvailability] = useState(false);
 
+  const [consultations, setConsultations] = useState<Consultation[]>([]);
+  const [confirmDateTimes, setConfirmDateTimes] = useState<Record<string, string>>({});
+  const [togglingConsultationAvailability, setTogglingConsultationAvailability] = useState(false);
+
   const [deliveryDirectory, setDeliveryDirectory] = useState<DeliveryPartnerDirectoryEntry[]>([]);
   const [selectedDeliveryPartner, setSelectedDeliveryPartner] = useState<Record<string, string>>({});
 
@@ -290,6 +311,9 @@ export function ProviderDashboardProvider({ children }: { children: ReactNode })
       }
       if (app.status === 'approved' && CAMP_TYPES.has(app.providerType)) {
         setCamps(await listProviderCamps(id));
+      }
+      if (app.status === 'approved' && CONSULTATION_TYPES.has(app.providerType)) {
+        setConsultations(await listDoctorConsultations(id));
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not load this application.');
@@ -361,6 +385,56 @@ export function ProviderDashboardProvider({ children }: { children: ReactNode })
       setError(err instanceof ApiError ? err.message : 'Could not update availability.');
     } finally {
       setTogglingAvailability(false);
+    }
+  }
+
+  async function handleToggleConsultationAvailability(field: 'acceptsOnlineConsultations' | 'acceptsHomeVisits') {
+    if (!id || !application) return;
+    setTogglingConsultationAvailability(true);
+    setError(null);
+    try {
+      await setConsultationAvailability(id, { [field]: !application[field] });
+      await reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not update availability.');
+    } finally {
+      setTogglingConsultationAvailability(false);
+    }
+  }
+
+  async function handleConfirmConsultation(consultationId: string) {
+    const chosen = confirmDateTimes[consultationId];
+    if (!chosen) {
+      setError('Pick a date and time to confirm first.');
+      return;
+    }
+    setError(null);
+    try {
+      await confirmConsultation(consultationId, new Date(chosen).toISOString());
+      setMessage('Consultation confirmed.');
+      await reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not confirm this request.');
+    }
+  }
+
+  async function handleCompleteConsultation(consultationId: string) {
+    setError(null);
+    try {
+      await completeConsultation(consultationId);
+      await reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not mark this as completed.');
+    }
+  }
+
+  async function handleCancelConsultationAsDoctor(consultationId: string) {
+    setError(null);
+    try {
+      await cancelConsultationApi(consultationId);
+      await reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not cancel this request.');
     }
   }
 
@@ -630,6 +704,15 @@ export function ProviderDashboardProvider({ children }: { children: ReactNode })
 
     togglingAvailability,
     handleToggleAvailability,
+
+    consultations,
+    confirmDateTimes,
+    setConfirmDateTimes,
+    handleConfirmConsultation,
+    handleCompleteConsultation,
+    handleCancelConsultationAsDoctor,
+    togglingConsultationAvailability,
+    handleToggleConsultationAvailability,
 
     slots,
     slotDate,
