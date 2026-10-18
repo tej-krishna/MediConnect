@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../models/diagnostics.dart';
 import '../../services/api_client.dart';
+import '../../app/app_theme.dart';
 import '../../services/diagnostics_service.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/error_banner.dart';
 
 const _cancellableStatuses = {'requested', 'scheduled'};
@@ -54,9 +56,9 @@ class _MyDiagnosticOrdersScreenState extends State<MyDiagnosticOrdersScreen> {
         child: _error != null && _orders == null
             ? Padding(padding: const EdgeInsets.all(16), child: ErrorBanner.fromException(_error!, onRetry: _load))
             : _orders == null
-                ? const Center(child: CircularProgressIndicator())
+                ? const LoadingView()
                 : _orders!.isEmpty
-                    ? const Center(child: Text("You haven't booked any diagnostic tests yet."))
+                    ? const EmptyState(icon: Icons.biotech_outlined, message: "You haven't booked any diagnostic tests yet.")
                     : ListView(
                         padding: const EdgeInsets.all(16),
                         children: [
@@ -72,7 +74,7 @@ class _MyDiagnosticOrdersScreenState extends State<MyDiagnosticOrdersScreen> {
                                       const SizedBox(height: 4),
                                       Text('${o.collectionMethod == 'home_collection' ? 'Home' : 'At lab'} · ${o.status.replaceAll('_', ' ')}'),
                                       Text('Total: ₹${o.totalAmount.toStringAsFixed(0)}'),
-                                      if (o.hasReport) const Text('Report ready', style: TextStyle(color: Colors.green)),
+                                      if (o.hasReport) const Text('Report ready', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600)),
                                       if (_cancellableStatuses.contains(o.status))
                                         Align(
                                           alignment: Alignment.centerRight,

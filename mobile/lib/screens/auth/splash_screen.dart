@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../app/app_theme.dart';
+import '../../widgets/brand_mark.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
@@ -7,14 +8,14 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
+      backgroundColor: AppTheme.background,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'MediConnect',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.primary),
-            ),
+            BrandMark(size: 64),
+            SizedBox(height: 16),
+            Text('MediConnect', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppTheme.ink)),
             SizedBox(height: 24),
             CircularProgressIndicator(color: AppTheme.primary),
           ],

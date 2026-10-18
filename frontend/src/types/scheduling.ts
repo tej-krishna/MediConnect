@@ -17,6 +17,9 @@ export interface Appointment {
   status: 'booked' | 'cancelled' | 'completed' | 'no_show';
   bookedAt: string;
   cancelledAt: string | null;
+  /** Only populated on GET /appointments/mine (never on the provider-side listing). */
+  provider?: { organizationName: string; providerType: string; typeDetails: Record<string, unknown> } | null;
+  slot?: { startTime: string; endTime: string } | null;
 }
 
 export interface StaffMember {

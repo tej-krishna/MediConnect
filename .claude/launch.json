@@ -17,6 +17,7 @@
       "name": "mediconnect-mobile-web",
       "runtimeExecutable": "flutter",
       "runtimeArgs": ["run", "-d", "web-server", "--web-port", "5190", "--web-hostname", "localhost"],
+      "cwd": "mobile",
       "port": 5190
     }
   ]

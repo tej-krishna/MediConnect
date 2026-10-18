@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../models/diagnostics.dart';
 import '../../services/api_client.dart';
 import '../../services/diagnostics_service.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/error_banner.dart';
 
 class DiagnosticTestSearchScreen extends StatefulWidget {
@@ -69,11 +70,13 @@ class _DiagnosticTestSearchScreenState extends State<DiagnosticTestSearchScreen>
               const SizedBox(height: 12),
               if (_error != null) ErrorBanner.fromException(_error!, onRetry: _search),
               Expanded(
-                child: _results == null
-                    ? const SizedBox.shrink()
-                    : _results!.isEmpty
-                        ? const Center(child: Text('No matching tests found.'))
-                        : ListView.separated(
+                child: _loading
+                    ? const LoadingView()
+                    : _results == null
+                        ? const EmptyState(icon: Icons.biotech_outlined, message: 'Search for a diagnostic test to see labs offering it.')
+                        : _results!.isEmpty
+                            ? const EmptyState(icon: Icons.search_off, message: 'No matching tests found.')
+                            : ListView.separated(
                             itemCount: _results!.length,
                             separatorBuilder: (_, _) => const SizedBox(height: 8),
                             itemBuilder: (context, index) {

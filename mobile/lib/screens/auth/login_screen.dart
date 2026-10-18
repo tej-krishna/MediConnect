@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../app/auth_provider.dart';
+import '../../widgets/brand_mark.dart';
 import '../../widgets/error_banner.dart';
 import '../../widgets/google_signin_button.dart';
 
@@ -74,9 +75,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('MediConnect', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    const Center(child: BrandMark()),
+                    const SizedBox(height: 16),
+                    Text('MediConnect', textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-                    const Text('Log in to your account'),
+                    const Text('Log in to your account', textAlign: TextAlign.center),
                     const SizedBox(height: 24),
                     if (_error != null) ErrorBanner(message: _error!),
                     TextFormField(

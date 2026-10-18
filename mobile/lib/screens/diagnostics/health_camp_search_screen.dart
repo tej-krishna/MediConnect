@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../../app/app_theme.dart';
 import '../../app/auth_provider.dart';
 import '../../models/diagnostics.dart';
 import '../../services/api_client.dart';
 import '../../services/diagnostics_service.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/error_banner.dart';
 
 class HealthCampSearchScreen extends StatefulWidget {
@@ -89,16 +91,18 @@ class _HealthCampSearchScreenState extends State<HealthCampSearchScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   margin: const EdgeInsets.only(bottom: 8),
-                  decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8)),
-                  child: Text(_message!, style: TextStyle(color: Colors.green.shade900)),
+                  decoration: BoxDecoration(color: AppTheme.primaryLight, borderRadius: BorderRadius.circular(12)),
+                  child: Text(_message!, style: const TextStyle(color: AppTheme.primaryDark, fontWeight: FontWeight.w600)),
                 ),
               if (_error != null) ErrorBanner.fromException(_error!, onRetry: _search),
               Expanded(
-                child: _results == null
-                    ? const SizedBox.shrink()
-                    : _results!.isEmpty
-                        ? const Center(child: Text('No camps found.'))
-                        : ListView.separated(
+                child: _loading
+                    ? const LoadingView()
+                    : _results == null
+                        ? const EmptyState(icon: Icons.event_outlined, message: 'Search for health camps near you by city.')
+                        : _results!.isEmpty
+                            ? const EmptyState(icon: Icons.event_busy_outlined, message: 'No camps found.')
+                            : ListView.separated(
                             itemCount: _results!.length,
                             separatorBuilder: (_, _) => const SizedBox(height: 8),
                             itemBuilder: (context, index) {

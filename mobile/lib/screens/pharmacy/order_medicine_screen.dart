@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../models/pharmacy.dart';
 import '../../services/api_client.dart';
 import '../../services/pharmacy_service.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/error_banner.dart';
 
 class OrderMedicineScreen extends StatefulWidget {
@@ -106,7 +107,7 @@ class _OrderMedicineScreenState extends State<OrderMedicineScreen> {
       return Scaffold(body: Padding(padding: const EdgeInsets.all(16), child: ErrorBanner.fromException(_loadError!, onRetry: _load)));
     }
     if (_medicine == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: LoadingView());
     }
 
     if (_placedOrder != null) {

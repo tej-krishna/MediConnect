@@ -19,15 +19,44 @@ function toSlotView(slot: SlotDoc) {
   };
 }
 
+/** `field` is either a bare ObjectId or, when the query `.populate()`d it, a full document — either
+ * way this pulls out just the id string, never relying on a populated Document's own `.toString()`
+ * (which doesn't just give the hex id). */
+function idOf(field: { _id?: unknown; toString(): string }): string {
+  return field._id ? String(field._id) : field.toString();
+}
+
 function toAppointmentView(appointment: AppointmentDoc) {
   return {
     id: appointment._id.toString(),
-    slotId: appointment.slotId.toString(),
-    providerId: appointment.providerId.toString(),
+    slotId: idOf(appointment.slotId),
+    providerId: idOf(appointment.providerId),
     patientId: appointment.patientId.toString(),
     status: appointment.status,
     bookedAt: appointment.bookedAt,
     cancelledAt: appointment.cancelledAt,
+  };
+}
+
+/** The shape `.populate('providerId', ...)`/`.populate('slotId', ...)` leaves on the doc — only
+ * `listMyAppointments` populates, so this view is only ever used for that response. */
+interface PopulatedAppointmentDoc extends Omit<AppointmentDoc, 'providerId' | 'slotId'> {
+  providerId: { _id: unknown; organizationName: string; providerType: string; typeDetails: Record<string, unknown> };
+  slotId: { _id: unknown; startTime: Date; endTime: Date };
+}
+
+function toMyAppointmentView(appointment: AppointmentDoc) {
+  const base = toAppointmentView(appointment);
+  const populated = appointment as unknown as PopulatedAppointmentDoc;
+  const provider = populated.providerId;
+  const slot = populated.slotId;
+  return {
+    ...base,
+    provider:
+      provider && typeof provider === 'object' && 'organizationName' in provider
+        ? { organizationName: provider.organizationName, providerType: provider.providerType, typeDetails: provider.typeDetails }
+        : null,
+    slot: slot && typeof slot === 'object' && 'startTime' in slot ? { startTime: slot.startTime, endTime: slot.endTime } : null,
   };
 }
 
@@ -76,7 +105,7 @@ export const listMyAppointmentsHandler = asyncHandler(async (req, res) => {
     req.user!.id,
     req.query as Record<string, unknown>,
   );
-  sendSuccess(res, { appointments: items.map(toAppointmentView) }, 200, meta);
+  sendSuccess(res, { appointments: items.map(toMyAppointmentView) }, 200, meta);
 });
 
 export const listProviderAppointmentsHandler = asyncHandler(async (req, res) => {

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../models/diagnostics.dart';
 import '../../services/api_client.dart';
 import '../../services/diagnostics_service.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/error_banner.dart';
 
 class OrderTestScreen extends StatefulWidget {
@@ -101,7 +102,7 @@ class _OrderTestScreenState extends State<OrderTestScreen> {
       return Scaffold(body: Padding(padding: const EdgeInsets.all(16), child: ErrorBanner.fromException(_loadError!, onRetry: _load)));
     }
     if (_test == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: LoadingView());
     }
 
     return Scaffold(

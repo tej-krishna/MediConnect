@@ -4,6 +4,7 @@ import '../../app/app_theme.dart';
 import '../../models/emergency_guide.dart';
 import '../../services/api_client.dart';
 import '../../services/emergency_service.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/error_banner.dart';
 
 /// Public — no ProtectedRoute-equivalent guard, the same deliberate choice the website makes: an
@@ -91,7 +92,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
               ),
             const SizedBox(height: 16),
             if (_error != null) ErrorBanner.fromException(_error!, onRetry: _load),
-            if (_guides == null && _error == null) const Center(child: CircularProgressIndicator()),
+            if (_guides == null && _error == null) const LoadingView(),
             if (_guides != null)
               ..._guides!.map((guide) => Card(
                     margin: const EdgeInsets.only(bottom: 12),

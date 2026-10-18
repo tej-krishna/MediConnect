@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../app/app_theme.dart';
 import '../../app/auth_provider.dart';
 import '../../models/provider.dart';
 import '../../models/scheduling.dart';
 import '../../services/api_client.dart';
 import '../../services/provider_service.dart';
 import '../../services/scheduling_service.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/error_banner.dart';
+import '../../widgets/initials_avatar.dart';
 
 const _schedulingTypes = {'doctor', 'hospital', 'clinic'};
 
@@ -83,75 +87,137 @@ class _ProviderDetailScreenState extends State<ProviderDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final provider = _provider;
     return Scaffold(
-      appBar: AppBar(title: Text(_provider?.organizationName ?? 'Provider')),
+      appBar: AppBar(title: Text(provider?.organizationName ?? 'Provider')),
       body: SafeArea(
-        child: _error != null && _provider == null
+        child: _error != null && provider == null
             ? Padding(padding: const EdgeInsets.all(16), child: ErrorBanner.fromException(_error!, onRetry: _load))
-            : _provider == null
-                ? const Center(child: CircularProgressIndicator())
+            : provider == null
+                ? const LoadingView()
                 : ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      if (_error != null) ErrorBanner.fromException(_error!),
-                      if (_message != null)
+                      if (_error != null) ...[ErrorBanner.fromException(_error!), const SizedBox(height: 12)],
+                      if (_message != null) ...[
                         Container(
                           padding: const EdgeInsets.all(12),
-                          margin: const EdgeInsets.only(bottom: 12),
-                          decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8)),
-                          child: Text(_message!, style: TextStyle(color: Colors.green.shade900)),
-                        ),
-                      Text(providerTypeLabels[_provider!.providerType] ?? _provider!.providerType),
-                      const SizedBox(height: 8),
-                      Text(_provider!.address.toString()),
-                      if (_provider!.consultationFee != null) ...[
-                        const SizedBox(height: 8),
-                        Text('Consultation fee: ₹${_provider!.consultationFee!.toStringAsFixed(0)}'),
-                      ],
-                      if (_provider!.operatingHoursNote != null) ...[
-                        const SizedBox(height: 8),
-                        Text(_provider!.operatingHoursNote!),
-                      ],
-                      if (_provider!.isCurrentlyAvailable != null) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          _provider!.isCurrentlyAvailable! ? 'Currently available' : 'Not currently available',
-                          style: TextStyle(
-                            color: _provider!.isCurrentlyAvailable! ? Colors.green : Colors.red,
-                            fontWeight: FontWeight.bold,
+                          decoration: BoxDecoration(color: AppTheme.primaryLight, borderRadius: BorderRadius.circular(12)),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.check_circle, color: AppTheme.primaryDark, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(_message!, style: const TextStyle(color: AppTheme.primaryDark, fontWeight: FontWeight.w600))),
+                            ],
                           ),
                         ),
+                        const SizedBox(height: 16),
                       ],
-                      const SizedBox(height: 16),
                       Row(
                         children: [
-                          ElevatedButton.icon(
-                            onPressed: () => _call(_provider!.contactPhone),
-                            icon: const Icon(Icons.call),
-                            label: const Text('Call'),
+                          InitialsAvatar(name: provider.organizationName, icon: providerTypeIcons[provider.providerType], radius: 30),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(provider.organizationName, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+                                const SizedBox(height: 2),
+                                Text(
+                                  [providerTypeLabels[provider.providerType] ?? provider.providerType, if (provider.specialization != null) provider.specialization!].join(' · '),
+                                  style: const TextStyle(color: AppTheme.textMuted),
+                                ),
+                                if (provider.isCurrentlyAvailable != null) ...[
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Container(width: 7, height: 7, decoration: BoxDecoration(color: provider.isCurrentlyAvailable! ? AppTheme.primary : AppTheme.emergency, shape: BoxShape.circle)),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        provider.isCurrentlyAvailable! ? 'Currently available' : 'Not currently available',
+                                        style: TextStyle(color: provider.isCurrentlyAvailable! ? AppTheme.primaryDark : AppTheme.emergency, fontWeight: FontWeight.w600, fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 20),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _DetailRow(icon: Icons.location_on_outlined, text: provider.address.toString()),
+                              if (provider.consultationFee != null) ...[
+                                const SizedBox(height: 10),
+                                _DetailRow(icon: Icons.payments_outlined, text: 'Consultation fee: ₹${provider.consultationFee!.toStringAsFixed(0)}'),
+                              ],
+                              if (provider.operatingHoursNote != null) ...[
+                                const SizedBox(height: 10),
+                                _DetailRow(icon: Icons.schedule_outlined, text: provider.operatingHoursNote!),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _call(provider.contactPhone),
+                          icon: const Icon(Icons.call_outlined),
+                          label: const Text('Call'),
+                        ),
+                      ),
                       if (_slots != null) ...[
-                        const Divider(height: 32),
+                        const SizedBox(height: 24),
                         Text('Available slots', style: Theme.of(context).textTheme.titleMedium),
-                        const SizedBox(height: 8),
-                        if (_slots!.isEmpty) const Text('No open slots right now.'),
-                        ..._slots!.map((slot) => Card(
-                              margin: const EdgeInsets.only(bottom: 8),
+                        const SizedBox(height: 12),
+                        if (_slots!.isEmpty)
+                          const EmptyState(icon: Icons.event_busy_outlined, message: 'No open slots right now.')
+                        else
+                          for (final slot in _slots!) ...[
+                            Card(
                               child: ListTile(
-                                title: Text(slot.startTime),
+                                leading: const Icon(Icons.schedule_outlined, color: AppTheme.primary),
+                                title: Text(DateFormat('EEE, MMM d · h:mm a').format(DateTime.parse(slot.startTime))),
                                 subtitle: Text('${slot.remaining} of ${slot.capacity} spots left'),
                                 trailing: ElevatedButton(
                                   onPressed: _bookingSlotId == slot.id ? null : () => _book(slot),
                                   child: Text(_bookingSlotId == slot.id ? 'Booking…' : 'Book'),
                                 ),
                               ),
-                            )),
+                            ),
+                            const SizedBox(height: 8),
+                          ],
                       ],
                     ],
                   ),
       ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: AppTheme.textFaint),
+        const SizedBox(width: 10),
+        Expanded(child: Text(text)),
+      ],
     );
   }
 }

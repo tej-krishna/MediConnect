@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 class Address {
   final String line1;
   final String city;
@@ -33,6 +35,7 @@ class PublicProvider {
   final String? verifiedAt;
   final bool? isCurrentlyAvailable;
   final double? distanceMeters;
+  final Map<String, dynamic> typeDetails;
 
   const PublicProvider({
     required this.id,
@@ -47,7 +50,12 @@ class PublicProvider {
     this.verifiedAt,
     this.isCurrentlyAvailable,
     this.distanceMeters,
+    this.typeDetails = const {},
   });
+
+  /// e.g. a doctor's free-text specialization — the backend has no dedicated field for it, just
+  /// `typeDetails.specialization` (see provider.validation.ts's per-type typeDetails union).
+  String? get specialization => typeDetails['specialization'] as String?;
 
   factory PublicProvider.fromJson(Map<String, dynamic> json) {
     final location = json['location'] as Map<String, dynamic>?;
@@ -64,9 +72,23 @@ class PublicProvider {
       verifiedAt: json['verifiedAt'] as String?,
       isCurrentlyAvailable: json['isCurrentlyAvailable'] as bool?,
       distanceMeters: (json['distanceMeters'] as num?)?.toDouble(),
+      typeDetails: (json['typeDetails'] as Map?)?.cast<String, dynamic>() ?? const {},
     );
   }
 }
+
+const providerTypeIcons = <String, IconData>{
+  'doctor': Icons.medical_services_outlined,
+  'hospital': Icons.local_hospital_outlined,
+  'clinic': Icons.local_hospital_outlined,
+  'pharmacy': Icons.medication_outlined,
+  'diagnostic_lab': Icons.biotech_outlined,
+  'ambulance_provider': Icons.emergency_outlined,
+  'equipment_provider': Icons.accessible_outlined,
+  'mobile_van_operator': Icons.directions_bus_outlined,
+  'ngo_coordinator': Icons.volunteer_activism_outlined,
+  'insurance_provider': Icons.shield_outlined,
+};
 
 const providerTypeLabels = <String, String>{
   'doctor': 'Doctor',

@@ -99,7 +99,16 @@ export async function cancelAppointment(
 export async function listMyAppointments(patientId: string, query: Record<string, unknown>) {
   const { page, limit, skip } = parsePagination(query);
   const [items, total] = await Promise.all([
-    Appointment.find({ patientId }).sort({ bookedAt: -1 }).skip(skip).limit(limit),
+    Appointment.find({ patientId })
+      .sort({ bookedAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      // Populated so the client (the mobile Home screen's "Upcoming appointments" card, in
+      // particular) can show the doctor's name/specialty and the booked time slot without a
+      // separate round trip per appointment — only the fields a patient is already allowed to see
+      // on the public provider listing.
+      .populate('providerId', 'organizationName providerType typeDetails')
+      .populate('slotId', 'startTime endTime'),
     Appointment.countDocuments({ patientId }),
   ]);
   return { items, meta: buildPaginationMeta(page, limit, total) };

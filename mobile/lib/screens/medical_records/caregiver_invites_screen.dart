@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../models/medical_records.dart';
 import '../../services/api_client.dart';
 import '../../services/medical_records_service.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/error_banner.dart';
 
 const _allScopes = ['view_profile', 'view_documents', 'view_visits', 'manage_profile'];
@@ -127,7 +128,7 @@ class _CaregiverInvitesScreenState extends State<CaregiverInvitesScreen> {
             Text('Patient records shared with me', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             if (_invitesToMe == null)
-              const Center(child: CircularProgressIndicator())
+              const LoadingView()
             else if (_invitesToMe!.isEmpty)
               const Text('No invites or active access yet.')
             else
@@ -151,7 +152,7 @@ class _CaregiverInvitesScreenState extends State<CaregiverInvitesScreen> {
             Text('Caregivers I granted access to', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             if (_myGrants == null)
-              const Center(child: CircularProgressIndicator())
+              const LoadingView()
             else if (_myGrants!.isEmpty)
               const Text('No caregiver grants yet.')
             else

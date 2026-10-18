@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../app/app_theme.dart';
 import '../../models/pharmacy.dart';
 import '../../services/api_client.dart';
 import '../../services/pharmacy_service.dart';
+import '../../widgets/app_bottom_nav_shell.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/error_banner.dart';
 
 class MedicineSearchScreen extends StatefulWidget {
@@ -45,55 +48,66 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Medicines')),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
+    return AppBottomNavShell(
+      currentIndex: 1,
+      appBar: AppBar(
+        title: const Text('Pharmacy'),
+        actions: [IconButton(onPressed: () => context.push('/orders'), icon: const Icon(Icons.local_shipping_outlined), tooltip: 'My orders')],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              decoration: BoxDecoration(color: AppTheme.surfaceMuted, borderRadius: BorderRadius.circular(14)),
+              child: Row(
                 children: [
+                  const SizedBox(width: 14),
+                  const Icon(Icons.search, color: AppTheme.textFaint),
                   Expanded(
                     child: TextField(
                       controller: _queryController,
-                      decoration: const InputDecoration(labelText: 'Medicine or generic name'),
+                      decoration: const InputDecoration(hintText: 'Medicine or generic name', border: InputBorder.none, filled: false),
                       onSubmitted: (_) => _search(),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(onPressed: _loading ? null : _search, child: const Text('Search')),
+                  TextButton(onPressed: _loading ? null : _search, child: Text(_loading ? '...' : 'Search')),
                 ],
               ),
-              const SizedBox(height: 12),
-              if (_error != null) ErrorBanner.fromException(_error!, onRetry: _search),
-              Expanded(
-                child: _results == null
-                    ? const SizedBox.shrink()
-                    : _results!.isEmpty
-                        ? const Center(child: Text('No matching medicines found in stock right now.'))
-                        : ListView.separated(
-                            itemCount: _results!.length,
-                            separatorBuilder: (_, _) => const SizedBox(height: 8),
-                            itemBuilder: (context, index) {
-                              final m = _results![index];
-                              return Card(
-                                child: ListTile(
-                                  title: Text(m.name),
-                                  subtitle: Text('${m.genericName} · ${m.strength} · ${m.dosageForm}\n₹${m.unitPrice.toStringAsFixed(0)}${m.requiresPrescription ? ' · Rx required' : ''}'),
-                                  isThreeLine: true,
-                                  trailing: ElevatedButton(
-                                    onPressed: () => context.push('/medicines/${m.id}/order'),
-                                    child: const Text('Order'),
+            ),
+            const SizedBox(height: 16),
+            if (_error != null) ErrorBanner.fromException(_error!, onRetry: _search),
+            Expanded(
+              child: _loading
+                  ? const LoadingView()
+                  : _results == null
+                      ? const EmptyState(icon: Icons.medication_outlined, message: 'Search for a medicine by name to see pharmacies with it in stock.')
+                      : _results!.isEmpty
+                          ? const EmptyState(icon: Icons.inbox_outlined, message: 'No matching medicines found in stock right now.')
+                          : ListView.separated(
+                              itemCount: _results!.length,
+                              separatorBuilder: (_, _) => const SizedBox(height: 10),
+                              itemBuilder: (context, index) {
+                                final m = _results![index];
+                                return Card(
+                                  child: ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                    leading: const CircleAvatar(backgroundColor: AppTheme.primaryLight, child: Icon(Icons.medication_outlined, color: AppTheme.primaryDark)),
+                                    title: Text(m.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                                    subtitle: Text('${m.genericName} · ${m.strength} · ${m.dosageForm}\n₹${m.unitPrice.toStringAsFixed(0)}${m.requiresPrescription ? ' · Rx required' : ''}'),
+                                    isThreeLine: true,
+                                    trailing: FilledButton(
+                                      style: FilledButton.styleFrom(backgroundColor: AppTheme.primary),
+                                      onPressed: () => context.push('/medicines/${m.id}/order'),
+                                      child: const Text('Order'),
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
-                          ),
-              ),
-            ],
-          ),
+                                );
+                              },
+                            ),
+            ),
+          ],
         ),
       ),
     );

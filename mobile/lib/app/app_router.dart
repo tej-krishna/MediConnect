@@ -75,7 +75,16 @@ GoRouter buildRouter(AuthProvider authProvider) {
       GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
       GoRoute(path: '/account', builder: (context, state) => const AccountScreen()),
       GoRoute(path: '/emergency', builder: (context, state) => const EmergencyScreen()),
-      GoRoute(path: '/providers', builder: (context, state) => const ProviderSearchScreen()),
+      GoRoute(
+        path: '/providers',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return ProviderSearchScreen(
+            initialProviderType: extra?['providerType'] as String?,
+            initialQuery: extra?['query'] as String?,
+          );
+        },
+      ),
       GoRoute(
         path: '/providers/:id',
         builder: (context, state) => ProviderDetailScreen(providerId: state.pathParameters['id']!),

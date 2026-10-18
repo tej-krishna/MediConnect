@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/diagnostics.dart';
 import '../../services/api_client.dart';
 import '../../services/diagnostics_service.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/error_banner.dart';
 
 class MyCampRegistrationsScreen extends StatefulWidget {
@@ -52,9 +53,9 @@ class _MyCampRegistrationsScreenState extends State<MyCampRegistrationsScreen> {
         child: _error != null && _registrations == null
             ? Padding(padding: const EdgeInsets.all(16), child: ErrorBanner.fromException(_error!, onRetry: _load))
             : _registrations == null
-                ? const Center(child: CircularProgressIndicator())
+                ? const LoadingView()
                 : _registrations!.isEmpty
-                    ? const Center(child: Text("You haven't registered for any health camps yet."))
+                    ? const EmptyState(icon: Icons.how_to_reg_outlined, message: "You haven't registered for any health camps yet.")
                     : ListView(
                         padding: const EdgeInsets.all(16),
                         children: [

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../app/auth_provider.dart';
+import '../../widgets/brand_mark.dart';
 import '../../widgets/error_banner.dart';
 import '../../widgets/google_signin_button.dart';
 
@@ -112,6 +113,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    const Center(child: BrandMark()),
+                    const SizedBox(height: 20),
                     if (_error != null) ErrorBanner(message: _error!),
                     TextFormField(
                       controller: _nameController,
